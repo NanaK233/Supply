@@ -1,8 +1,9 @@
-"""Lightweight passcode auth with signed session cookies (stdlib only).
+"""Lightweight name-based auth with signed session cookies (stdlib only).
 
-Two roles: 'admin' (the EA) and 'staff' (Eddie & Danilo). A passcode maps to a
-role; on success we hand back a cookie value that is HMAC-signed with a local
-secret, so no server-side session store is needed and logins survive restarts.
+People sign in by picking their name from a list (configured under "users" in
+config.json). Each name maps to a role: 'admin' (Nana Kofi) or 'staff' (Eddie,
+Danilo). The cookie carries the name + role, HMAC-signed with a local secret,
+so no server-side session store is needed and logins survive restarts.
 """
 
 import hmac
@@ -17,6 +18,7 @@ SECRET_PATH = os.path.join(DATA_DIR, ".secret")
 
 SESSION_DAYS = 30
 COOKIE_NAME = "restock_session"
+_SEP = "|"  # names never contain this
 
 
 def _secret():
@@ -28,35 +30,37 @@ def _secret():
         return f.read()
 
 
-def role_for_passcode(passcode, cfg):
-    passcode = (passcode or "").strip()
-    if not passcode:
-        return None
-    if passcode == cfg.get("admin_passcode"):
-        return "admin"
-    if passcode == cfg.get("staff_passcode"):
-        return "staff"
+def users(cfg):
+    return cfg.get("users") or []
+
+
+def role_for_name(name, cfg):
+    """Return the role for a login name, or None if it isn't a known user."""
+    name = (name or "").strip()
+    for u in users(cfg):
+        if u.get("name") == name:
+            return u.get("role")
     return None
 
 
-def make_cookie(role):
+def make_cookie(role, name):
     expiry = int(time.time()) + SESSION_DAYS * 86400
-    payload = f"{role}:{expiry}"
+    payload = _SEP.join((role, name, str(expiry)))
     sig = hmac.new(_secret(), payload.encode(), hashlib.sha256).hexdigest()
-    raw = f"{payload}:{sig}"
+    raw = _SEP.join((payload, sig))
     return base64.urlsafe_b64encode(raw.encode()).decode()
 
 
 def read_cookie(cookie_value):
-    """Return the role if the cookie is valid and unexpired, else None."""
+    """Return {'role', 'name'} if the cookie is valid and unexpired, else None."""
     if not cookie_value:
         return None
     try:
         raw = base64.urlsafe_b64decode(cookie_value.encode()).decode()
-        role, expiry, sig = raw.rsplit(":", 2)
+        role, name, expiry, sig = raw.split(_SEP)
     except Exception:
         return None
-    payload = f"{role}:{expiry}"
+    payload = _SEP.join((role, name, expiry))
     expected = hmac.new(_secret(), payload.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(sig, expected):
         return None
@@ -64,7 +68,7 @@ def read_cookie(cookie_value):
         return None
     if role not in ("admin", "staff"):
         return None
-    return role
+    return {"role": role, "name": name}
 
 
 def parse_cookie_header(header):

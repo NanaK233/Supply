@@ -22,8 +22,11 @@ CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.j
 
 def load_config():
     cfg = {
-        "admin_passcode": "boss-1234",
-        "staff_passcode": "team-5678",
+        "users": [
+            {"name": "Nana Kofi", "role": "admin"},
+            {"name": "Eddie", "role": "staff"},
+            {"name": "Danilo", "role": "staff"},
+        ],
         "channels": ["email"],
         "smtp_host": os.environ.get("RESTOCK_SMTP_HOST", ""),
         "smtp_port": int(os.environ.get("RESTOCK_SMTP_PORT", "587")),

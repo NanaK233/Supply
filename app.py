@@ -45,20 +45,20 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return {}
 
-    def _role(self):
+    def _session(self):
         cookie = auth.parse_cookie_header(self.headers.get("Cookie"))
-        return auth.read_cookie(cookie)
+        return auth.read_cookie(cookie)  # {'role','name'} or None
 
     def _require(self, *allowed):
         """Return the caller's role if allowed, else send 401/403 and None."""
-        role = self._role()
-        if role is None:
+        sess = self._session()
+        if sess is None:
             self._json({"error": "Not signed in"}, 401)
             return None
-        if allowed and role not in allowed:
+        if allowed and sess["role"] not in allowed:
             self._json({"error": "Not allowed for your role"}, 403)
             return None
-        return role
+        return sess["role"]
 
     def _serve_static(self, path):
         if path in ("/", ""):
@@ -87,8 +87,13 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
 
         if path == "/api/me":
-            role = self._role()
-            return self._json({"role": role})
+            sess = self._session()
+            return self._json({"role": sess["role"] if sess else None,
+                               "name": sess["name"] if sess else None})
+
+        if path == "/api/users":  # public — populates the login dropdown
+            cfg = notify.load_config()
+            return self._json({"users": [u["name"] for u in auth.users(cfg)]})
 
         if path == "/api/items":
             if self._require() is None:
@@ -127,12 +132,13 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/login":
             cfg = notify.load_config()
-            role = auth.role_for_passcode(self._body().get("passcode"), cfg)
+            name = (self._body().get("name") or "").strip()
+            role = auth.role_for_name(name, cfg)
             if role is None:
-                return self._json({"error": "Wrong passcode"}, 401)
-            cookie = (f"{auth.COOKIE_NAME}={auth.make_cookie(role)}; "
+                return self._json({"error": "Unknown user"}, 401)
+            cookie = (f"{auth.COOKIE_NAME}={auth.make_cookie(role, name)}; "
                       f"Path=/; HttpOnly; SameSite=Lax; Max-Age={auth.SESSION_DAYS*86400}")
-            return self._json({"role": role}, cookie=cookie)
+            return self._json({"role": role, "name": name}, cookie=cookie)
 
         if path == "/api/logout":
             cookie = f"{auth.COOKIE_NAME}=; Path=/; HttpOnly; Max-Age=0"

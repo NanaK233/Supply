@@ -12,8 +12,10 @@
     <form class="login-card" id="loginForm">
       <div class="login-logo">📦</div>
       <h1>Supply Restock</h1>
-      <p class="muted">Enter your passcode to continue</p>
-      <input id="passcode" type="password" placeholder="Passcode" autocomplete="off" required>
+      <p class="muted">Choose your name to continue</p>
+      <select id="loginName" required>
+        <option value="" disabled selected>Select your name…</option>
+      </select>
       <button class="btn primary" type="submit">Sign in</button>
       <p id="loginError" class="login-error" hidden></p>
     </form>

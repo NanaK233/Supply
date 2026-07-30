@@ -1,6 +1,6 @@
 "use strict";
 
-let state = { items: [], owner: "All", search: "", role: null };
+let state = { items: [], owner: "All", search: "", role: null, name: null };
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, html) => {
@@ -43,10 +43,26 @@ function whenText(it) {
 }
 
 // ---- auth ----
-function showLogin() {
+async function populateLoginNames() {
+  const sel = $("#loginName");
+  try {
+    const data = await api("GET", "/api/users");
+    // keep the placeholder, add one option per name
+    for (const name of data.users) {
+      const o = document.createElement("option");
+      o.value = name;
+      o.textContent = name;
+      sel.append(o);
+    }
+  } catch (e) { /* leave placeholder only */ }
+}
+
+async function showLogin() {
   $("#app").hidden = true;
   $("#login").hidden = false;
-  $("#passcode").focus();
+  const sel = $("#loginName");
+  if (sel.options.length <= 1) await populateLoginNames();
+  sel.focus();
 }
 
 function showApp() {
@@ -55,7 +71,7 @@ function showApp() {
   document.body.classList.toggle("role-admin", isAdmin());
   document.body.classList.toggle("role-staff", !isAdmin());
   const badge = $("#roleBadge");
-  badge.textContent = isAdmin() ? "Admin" : "Staff";
+  badge.textContent = `${state.name} · ${isAdmin() ? "Admin" : "Staff"}`;
   badge.className = "role-badge " + (isAdmin() ? "admin" : "staff");
 }
 
@@ -63,6 +79,7 @@ async function checkSession() {
   const me = await api("GET", "/api/me").catch(() => ({ role: null }));
   if (me.role) {
     state.role = me.role;
+    state.name = me.name;
     showApp();
     await load();
   } else {
@@ -73,10 +90,17 @@ async function checkSession() {
 async function login(e) {
   e.preventDefault();
   $("#loginError").hidden = true;
+  const name = $("#loginName").value;
+  if (!name) {
+    const box = $("#loginError");
+    box.textContent = "Please select your name.";
+    box.hidden = false;
+    return;
+  }
   try {
-    const r = await api("POST", "/api/login", { passcode: $("#passcode").value });
+    const r = await api("POST", "/api/login", { name });
     state.role = r.role;
-    $("#passcode").value = "";
+    state.name = r.name;
     showApp();
     await load();
   } catch (err) {

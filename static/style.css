@@ -60,6 +60,7 @@ body {
 .stat.overdue .num { color: var(--overdue); }
 .stat.due .num { color: var(--due); }
 .stat.soon .num { color: var(--soon); }
+.stat.out .num { color: #991b1b; }
 
 .toolbar {
   display: flex; align-items: center; justify-content: space-between;
@@ -87,6 +88,8 @@ body {
 .card.due { border-left-color: var(--due); }
 .card.soon { border-left-color: var(--soon); }
 .card.ok { border-left-color: var(--ok); }
+.card.out { border-left-color: #991b1b; }
+.card.restocking { border-left-color: #0d9488; }
 
 .card-main { flex: 1; min-width: 0; }
 .card-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -110,8 +113,24 @@ body {
 .status-pill.due { background: #fef9c3; color: #a16207; }
 .status-pill.soon { background: #dbeafe; color: var(--soon); }
 .status-pill.ok { background: #dcfce7; color: var(--ok); }
+.status-pill.out { background: #991b1b; color: #fff; }
+.status-pill.restocking { background: #ccfbf1; color: #0f766e; }
 
 .card-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Status dropdown menu */
+.dropdown { position: relative; display: inline-block; }
+.dropdown-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 15;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(16,24,40,.16); padding: 5px; min-width: 172px;
+}
+.dropdown-item {
+  display: block; width: 100%; text-align: left; border: none; background: none;
+  padding: 9px 11px; border-radius: 7px; font-size: 13.5px; font-weight: 600;
+  color: var(--ink); cursor: pointer;
+}
+.dropdown-item:hover { background: var(--bg); }
 
 .suggestion {
   background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px;

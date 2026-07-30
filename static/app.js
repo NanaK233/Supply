@@ -32,8 +32,8 @@ function toast(msg) {
 }
 
 const STATUS_LABEL = {
-  low: "Running low", overdue: "Overdue", due: "Due today",
-  soon: "Coming up", ok: "On track",
+  out: "Out of stock", low: "Running low", overdue: "Overdue", due: "Due today",
+  soon: "Coming up", restocking: "Restocking", ok: "On track",
 };
 
 function whenText(it) {
@@ -138,18 +138,20 @@ function render() {
       main.append(s);
     }
 
-    const pill = el("span", `status-pill ${it.status}`,
-      `${STATUS_LABEL[it.status]} · ${whenText(it)}`);
+    // Out of stock / restocking show a plain state; others append the date.
+    const pillText = (it.status === "out" || it.status === "restocking")
+      ? STATUS_LABEL[it.status]
+      : `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
+    const pill = el("span", `status-pill ${it.status}`, pillText);
 
     // Actions — some are admin-only
     const actions = el("div", "card-actions");
     const stockBtn = el("button", "btn small", "📦 Stock");
     stockBtn.onclick = () => openStock(it);
-    const restock = el("button", "btn small primary", "✓ Restocked");
-    restock.onclick = () => act(it.id, "restock", `${it.name} marked restocked`);
+    actions.append(stockBtn, buildStatusMenu(it));
     const low = el("button", "btn small", "⚠ Flag low");
     low.onclick = () => act(it.id, "flag-low", `${it.name} flagged as low`);
-    actions.append(stockBtn, restock, low);
+    actions.append(low);
 
     if (isAdmin()) {
       const edit = el("button", "btn small ghost", "Edit");
@@ -166,10 +168,53 @@ function render() {
   renderStats();
 }
 
+// A "Status ▾" dropdown replacing the old single Restocked button.
+const STATE_OPTIONS = [
+  { state: "out_of_stock", label: "⛔ Out of stock", done: "marked out of stock" },
+  { state: "restocking", label: "🔄 Restocking", done: "marked as restocking" },
+  { state: "restocked", label: "✓ Restocked", done: "marked restocked" },
+];
+
+function buildStatusMenu(it) {
+  const wrap = el("div", "dropdown");
+  const toggle = el("button", "btn small primary dropdown-toggle", "Status ▾");
+  const menu = el("div", "dropdown-menu");
+  menu.hidden = true;
+  for (const opt of STATE_OPTIONS) {
+    const b = el("button", "dropdown-item", opt.label);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      menu.hidden = true;
+      setState(it.id, opt.state, `${it.name} ${opt.done}`);
+    };
+    menu.append(b);
+  }
+  toggle.onclick = (e) => {
+    e.stopPropagation();
+    const wasOpen = !menu.hidden;
+    closeAllMenus();
+    menu.hidden = wasOpen;
+  };
+  wrap.append(toggle, menu);
+  return wrap;
+}
+
+function closeAllMenus() {
+  document.querySelectorAll(".dropdown-menu").forEach((m) => (m.hidden = true));
+}
+
+async function setState(id, stateValue, msg) {
+  try {
+    await api("POST", `/api/items/${id}/state`, { state: stateValue });
+    await load();
+    toast(msg);
+  } catch (e) { toast(e.message); }
+}
+
 function renderStats() {
-  const counts = { low: 0, overdue: 0, due: 0, soon: 0 };
+  const counts = { out: 0, low: 0, overdue: 0, due: 0, soon: 0 };
   for (const it of state.items) if (counts[it.status] != null) counts[it.status]++;
-  const defs = [["low", "Running low"], ["overdue", "Overdue"],
+  const defs = [["out", "Out of stock"], ["low", "Running low"], ["overdue", "Overdue"],
                 ["due", "Due today"], ["soon", "Coming up"]];
   const stats = $("#stats");
   stats.innerHTML = "";
@@ -313,5 +358,6 @@ $("#ownerFilter").onclick = (e) => {
 document.querySelectorAll(".modal-backdrop").forEach((m) => {
   m.onclick = (e) => { if (e.target === m) m.hidden = true; };
 });
+document.addEventListener("click", closeAllMenus);
 
 checkSession();

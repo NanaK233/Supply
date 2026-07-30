@@ -72,7 +72,7 @@ def load_config():
 def build_digest():
     """Return a structured summary of what needs attention right now."""
     items = store.list_items()
-    buckets = {"low": [], "overdue": [], "due": [], "soon": []}
+    buckets = {"out": [], "low": [], "overdue": [], "due": [], "soon": []}
     for it in items:
         if it["status"] in buckets:
             buckets[it["status"]].append(it)
@@ -93,7 +93,8 @@ def _fmt_line(it):
 
 def render_text(digest):
     lines = ["Weekly Supply Restock — status\n"]
-    labels = [("low", "🔴 Running LOW (flagged off-schedule)"),
+    labels = [("out", "⛔ OUT OF STOCK"),
+              ("low", "🔴 Running LOW (flagged off-schedule)"),
               ("overdue", "🟠 Overdue"),
               ("due", "🟡 Due today"),
               ("soon", "🔵 Coming up soon")]
@@ -134,6 +135,7 @@ def render_html(digest):
     parts = ["<div style='font-family:-apple-system,Segoe UI,Arial,sans-serif;"
              "max-width:560px;color:#222'>",
              "<h2>Weekly Supply Restock</h2>"]
+    parts.append(block("⛔ Out of stock", "#7f1d1d", digest["buckets"]["out"]))
     parts.append(block("🔴 Running low (flagged off-schedule)", "#c0392b",
                        digest["buckets"]["low"]))
     parts.append(block("🟠 Overdue", "#e67e22", digest["buckets"]["overdue"]))

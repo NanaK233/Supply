@@ -169,6 +169,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "Not found"}, 404)
             return self._json(result)
 
+        # status menu (out of stock / restocking / restocked) — staff + admin
+        m = re.match(r"^/api/items/(\d+)/state$", path)
+        if m:
+            if self._require("admin", "staff") is None:
+                return
+            state = self._body().get("state")
+            if state not in store.RESTOCK_STATES:
+                return self._json({"error": "Invalid state"}, 400)
+            result = store.set_restock_state(int(m.group(1)), state)
+            if result is None:
+                return self._json({"error": "Not found"}, 404)
+            return self._json(result)
+
         # apply / dismiss suggestion — admin only
         m = re.match(r"^/api/items/(\d+)/(apply-suggestion|dismiss-suggestion)$", path)
         if m:

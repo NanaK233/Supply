@@ -74,6 +74,11 @@ def init_db():
         );
         """
     )
+    # Migration: manual restock workflow state ('' | 'out_of_stock' | 'restocking').
+    try:
+        conn.execute("ALTER TABLE items ADD COLUMN restock_state TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
     conn.close()
 
@@ -105,11 +110,19 @@ def _last_restock_change_date(conn, item):
 
 
 def _open_low_flag(conn, item):
-    """A low flag raised since the last restock counts as 'still low'."""
+    """A low flag counts as 'still low' only if raised after the most recent
+    restock. Using the restock event's full timestamp (not just the date) means
+    marking an item restocked clears a low flag raised earlier the same day."""
+    restocked = conn.execute(
+        "SELECT created_at FROM events WHERE item_id=? AND type='restocked' "
+        "ORDER BY created_at DESC LIMIT 1",
+        (item["id"],),
+    ).fetchone()
+    ref = restocked["created_at"] if restocked else item["last_restocked"]
     row = conn.execute(
         "SELECT created_at FROM events WHERE item_id=? AND type='flagged_low' "
-        "AND created_at >= ? ORDER BY created_at DESC LIMIT 1",
-        (item["id"], item["last_restocked"]),
+        "AND created_at > ? ORDER BY created_at DESC LIMIT 1",
+        (item["id"], ref),
     ).fetchone()
     return row is not None
 
@@ -162,7 +175,13 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     days_until = (due - _today()).days
     is_low = _open_low_flag(conn, item)
 
-    if is_low:
+    # A manually-set workflow state overrides the date-based status.
+    manual = item.get("restock_state") or ""
+    if manual == "out_of_stock":
+        status = "out"
+    elif manual == "restocking":
+        status = "restocking"
+    elif is_low:
         status = "low"
     elif days_until < 0:
         status = "overdue"
@@ -177,6 +196,7 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     item["days_until"] = days_until
     item["status"] = status
     item["is_low"] = is_low
+    item["restock_state"] = manual
     item["suggestion"] = _suggestion_for(conn, item)
     return item
 
@@ -194,7 +214,8 @@ def list_items(include_archived=False):
     items = [_decorate(conn, r) for r in rows]
     conn.close()
 
-    order = {"low": 0, "overdue": 1, "due": 2, "soon": 3, "ok": 4}
+    order = {"out": 0, "low": 1, "overdue": 2, "due": 3, "soon": 4,
+             "restocking": 5, "ok": 6}
     items.sort(key=lambda i: (order.get(i["status"], 9), i["days_until"]))
     return items
 
@@ -294,11 +315,38 @@ def _log_event(conn, item_id, etype, days_early=None, detail=""):
 
 
 def mark_restocked(item_id):
-    """Reset the clock: next due = today + cadence."""
+    """Reset the clock: next due = today + cadence, and clear any manual state."""
     conn = _connect()
     today = _today().isoformat()
-    conn.execute("UPDATE items SET last_restocked=? WHERE id=?", (today, item_id))
+    conn.execute("UPDATE items SET last_restocked=?, restock_state='' WHERE id=?",
+                 (today, item_id))
     _log_event(conn, item_id, "restocked")
+    conn.commit()
+    conn.close()
+    return get_item(item_id)
+
+
+# Values accepted by set_restock_state, mapped to the DB column value.
+RESTOCK_STATES = {"out_of_stock", "restocking", "restocked"}
+
+
+def set_restock_state(item_id, state):
+    """Apply a workflow state from the status menu.
+
+    'restocked'   -> reset the clock (delegates to mark_restocked)
+    'out_of_stock'/'restocking' -> set the manual state, keep the schedule.
+    """
+    if state == "restocked":
+        return mark_restocked(item_id)
+    if state not in ("out_of_stock", "restocking"):
+        return None
+    conn = _connect()
+    row = conn.execute("SELECT id FROM items WHERE id=?", (item_id,)).fetchone()
+    if not row:
+        conn.close()
+        return None
+    conn.execute("UPDATE items SET restock_state=? WHERE id=?", (state, item_id))
+    _log_event(conn, item_id, state)
     conn.commit()
     conn.close()
     return get_item(item_id)

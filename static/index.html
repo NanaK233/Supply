@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supply Restock</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Login screen -->
+  <div id="login" class="login-screen" hidden>
+    <form class="login-card" id="loginForm">
+      <div class="login-logo">📦</div>
+      <h1>Supply Restock</h1>
+      <p class="muted">Enter your passcode to continue</p>
+      <input id="passcode" type="password" placeholder="Passcode" autocomplete="off" required>
+      <button class="btn primary" type="submit">Sign in</button>
+      <p id="loginError" class="login-error" hidden></p>
+    </form>
+  </div>
+
+  <!-- App -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">📦</span>
+        <div>
+          <h1>Supply Restock</h1>
+          <p class="sub">Weekly restocking for Eddie &amp; Danilo</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span id="roleBadge" class="role-badge"></span>
+        <button id="previewBtn" class="btn ghost admin-only">✉️ Alerts</button>
+        <button id="addBtn" class="btn primary">＋ Add item</button>
+        <button id="logoutBtn" class="btn ghost">Sign out</button>
+      </div>
+    </header>
+
+    <section class="stats" id="stats"></section>
+
+    <div class="toolbar">
+      <div class="filters" id="ownerFilter">
+        <button class="chip active" data-owner="All">All</button>
+        <button class="chip" data-owner="Eddie">Eddie</button>
+        <button class="chip" data-owner="Danilo">Danilo</button>
+        <button class="chip" data-owner="Shared">Shared</button>
+      </div>
+      <input id="search" class="search" type="search" placeholder="Search items…">
+    </div>
+
+    <main id="list" class="list"></main>
+    <p id="empty" class="empty" hidden>No items yet. Click <b>＋ Add item</b> to get started.</p>
+  </div>
+
+  <!-- Add / edit dialog -->
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal">
+      <h2 id="modalTitle">Add item</h2>
+      <form id="itemForm">
+        <input type="hidden" name="id">
+        <label>Item name
+          <input name="name" required placeholder="e.g. Coffee pods" autocomplete="off">
+        </label>
+        <div class="row">
+          <label>Owner
+            <select name="owner">
+              <option>Shared</option><option>Eddie</option><option>Danilo</option>
+            </select>
+          </label>
+          <label>Category
+            <input name="category" placeholder="e.g. Kitchen" autocomplete="off">
+          </label>
+        </div>
+        <div class="row">
+          <label>Quantity on hand
+            <input name="quantity" placeholder="e.g. 2" autocomplete="off">
+          </label>
+          <label>Unit
+            <input name="unit" placeholder="e.g. boxes" autocomplete="off">
+          </label>
+        </div>
+        <div class="row">
+          <label>Restock every (days)
+            <input name="cadence_days" type="number" min="1" value="7" required>
+          </label>
+          <label>Last restocked
+            <input name="last_restocked" type="date">
+          </label>
+        </div>
+        <label>Notes
+          <textarea name="notes" rows="2" placeholder="Optional"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn primary" id="saveBtn">Save item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Update stock dialog -->
+  <div class="modal-backdrop" id="stockModal" hidden>
+    <div class="modal">
+      <h2>Update stock</h2>
+      <p class="muted" id="stockItemName"></p>
+      <form id="stockForm">
+        <input type="hidden" name="id">
+        <div class="row">
+          <label>Quantity on hand
+            <input name="quantity" autocomplete="off" required>
+          </label>
+          <label>Unit
+            <input name="unit" autocomplete="off">
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" id="stockCancel">Cancel</button>
+          <button type="submit" class="btn primary">Save stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Alert preview dialog (admin) -->
+  <div class="modal-backdrop" id="previewModal" hidden>
+    <div class="modal">
+      <h2>Alert preview</h2>
+      <p class="muted" id="previewStatus"></p>
+      <pre id="previewText" class="preview"></pre>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" id="previewClose">Close</button>
+        <button type="button" class="btn primary" id="sendNowBtn">Send now</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

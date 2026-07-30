@@ -1,0 +1,31 @@
+{
+  "_comment": "Copy to config.json and fill in. Keep config.json PRIVATE — it holds passcodes and passwords.",
+
+  "admin_passcode": "change-me-admin",
+  "staff_passcode": "change-me-staff",
+
+  "_channels_note": "Which channels to send alerts on. Any of: email, whatsapp.",
+  "channels": ["email"],
+
+  "_email_note": "For Gmail/Google Workspace use an App Password, not your normal password.",
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_user": "business@propgda.com",
+  "smtp_password": "your-16-char-app-password",
+  "from_addr": "business@propgda.com",
+  "recipients": ["eddie@example.com", "danilo@example.com"],
+
+  "_whatsapp_note": "provider is 'callmebot' (simplest, sends to your own number) or 'twilio'.",
+  "whatsapp": {
+    "provider": "callmebot",
+    "callmebot_phone": "+14155551234",
+    "callmebot_apikey": "your-callmebot-key",
+
+    "twilio_sid": "",
+    "twilio_token": "",
+    "twilio_from": "whatsapp:+14155238886",
+    "twilio_to": "whatsapp:+14155551234"
+  },
+
+  "lead_days": 2
+}

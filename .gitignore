@@ -1,0 +1,12 @@
+# Secrets — NEVER commit these. Cloud uses GitHub Actions Secrets instead.
+config.json
+.secret
+
+# Logs and runtime junk
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+
+# NOTE: restock.db IS committed on purpose — the cloud digest reads your
+# schedule from it. It contains no passwords (those are in config.json / Secrets).

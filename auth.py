@@ -12,7 +12,8 @@ import time
 import base64
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SECRET_PATH = os.path.join(HERE, ".secret")
+DATA_DIR = os.environ.get("RESTOCK_DATA_DIR") or HERE
+SECRET_PATH = os.path.join(DATA_DIR, ".secret")
 
 SESSION_DAYS = 30
 COOKIE_NAME = "restock_session"

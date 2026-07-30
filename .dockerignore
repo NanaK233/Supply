@@ -1,0 +1,8 @@
+.git
+config.json
+.secret
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+.github

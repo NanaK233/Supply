@@ -114,6 +114,25 @@ Your Mac must be on/awake at (or after) 8am for that day's send.
 Desktop/Documents/Downloads — macOS blocks background jobs from reading those, and
 the 8am send would silently fail.
 
+## Cloud daily digest (free — GitHub Actions)
+
+The daily WhatsApp is sent from the cloud by GitHub Actions, so it fires even when
+your Mac is off. The website still runs locally; the app auto-syncs its data
+(`restock.db`) up to GitHub so the cloud digest always has your latest schedule.
+
+- Workflow: `.github/workflows/daily-digest.yml` (runs 04:00 UTC = 08:00 UAE).
+- Secrets (set in the GitHub repo, **not** in code): `CALLMEBOT_PHONE`,
+  `CALLMEBOT_APIKEY`.
+- Local data sync: run the site with `RESTOCK_GIT_SYNC=1` and it pushes `restock.db`
+  to GitHub whenever it changes. Push auth uses your saved GitHub credentials.
+
+Test the cloud send anytime: GitHub repo → **Actions** tab → *Daily restock digest*
+→ **Run workflow**.
+
+Limitations of the free route: the website isn't hosted 24/7 (local only), and the
+cloud digest is only as current as the last successful data sync. For an always-on
+hosted website too, move to a paid host (~$5/mo) — ask me.
+
 ## Files
 
 | File | What it is |

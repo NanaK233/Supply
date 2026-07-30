@@ -17,10 +17,11 @@ import store
 import notify
 import auth
 import sync
+import scheduler
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(HERE, "static")
-PORT = int(os.environ.get("RESTOCK_PORT", "8765"))
+PORT = int(os.environ.get("PORT") or os.environ.get("RESTOCK_PORT") or "8765")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -214,6 +215,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     store.init_db()
     sync.start_if_enabled()
+    scheduler.start_if_enabled()
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"Restock site running →  http://localhost:{PORT}")
     print("Press Ctrl+C to stop.")

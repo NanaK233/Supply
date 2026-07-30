@@ -6,9 +6,15 @@ No external dependencies — pure Python standard library.
 
 import sqlite3
 import os
+import shutil
 from datetime import date, datetime, timedelta
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "restock.db")
+HERE = os.path.dirname(os.path.abspath(__file__))
+# On a cloud host, point RESTOCK_DATA_DIR at a persistent volume (e.g. /data) so
+# the database survives redeploys/restarts. Locally it just sits next to the code.
+DATA_DIR = os.environ.get("RESTOCK_DATA_DIR") or HERE
+DB_PATH = os.path.join(DATA_DIR, "restock.db")
+_BUNDLED_DB = os.path.join(HERE, "restock.db")
 
 OWNERS = ["Eddie", "Danilo", "Shared"]
 
@@ -28,6 +34,12 @@ def _connect():
 
 
 def init_db():
+    # Ensure the data directory exists, and on a fresh persistent volume seed it
+    # from the bundled database so existing items carry over on first deploy.
+    if DATA_DIR != HERE:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        if not os.path.exists(DB_PATH) and os.path.exists(_BUNDLED_DB):
+            shutil.copy2(_BUNDLED_DB, DB_PATH)
     conn = _connect()
     conn.executescript(
         """

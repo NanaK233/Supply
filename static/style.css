@@ -213,6 +213,7 @@ img, svg { max-width: 100%; }
 body:not(.role-admin) .admin-only { display: none !important; }
 
 .qty-strong { font-weight: 700; color: var(--ink); }
+.qty-empty { font-weight: 800; color: #991b1b; }
 
 @media (max-width: 880px) {
   .card { flex-direction: column; align-items: stretch; }

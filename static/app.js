@@ -139,9 +139,10 @@ function render() {
     main.append(title);
 
     const metaBits = [];
-    const stock = it.quantity
-      ? `<span class="qty-strong">${it.quantity} ${it.unit || ""}</span> on hand`
-      : `<span class="muted">stock not set</span>`;
+    let stock;
+    if (it.is_empty) stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
+    else if (it.quantity) stock = `<span class="qty-strong">${it.quantity} ${it.unit || ""}</span> on hand`;
+    else stock = `<span class="muted">stock not set</span>`;
     metaBits.push(stock);
     if (it.category) metaBits.push(it.category);
     metaBits.push(`every ${it.cadence_days}d`);
@@ -162,10 +163,11 @@ function render() {
       main.append(s);
     }
 
-    // Out of stock / restocking show a plain state; others append the date.
-    const pillText = (it.status === "out" || it.status === "restocking")
-      ? STATUS_LABEL[it.status]
-      : `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
+    // Empty / out of stock / restocking show a plain state; others append the date.
+    let pillText;
+    if (it.is_empty) pillText = "Empty · restock now";
+    else if (it.status === "out" || it.status === "restocking") pillText = STATUS_LABEL[it.status];
+    else pillText = `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
     const pill = el("span", `status-pill ${it.status}`, pillText);
 
     // Actions — some are admin-only

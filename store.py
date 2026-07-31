@@ -6,6 +6,7 @@ No external dependencies — pure Python standard library.
 
 import sqlite3
 import os
+import re
 import shutil
 from datetime import date, datetime, timedelta
 
@@ -89,6 +90,16 @@ def _today():
 
 def _parse(d):
     return datetime.strptime(d, "%Y-%m-%d").date()
+
+
+def _parse_qty(q):
+    """Pull the leading number out of a free-text quantity like '0', '0 boxes',
+    '6 Bottles'. Returns a float, or None when no number is present (i.e. the
+    stock level simply hasn't been recorded — which is NOT the same as empty)."""
+    if q is None:
+        return None
+    m = re.search(r"-?\d+(?:\.\d+)?", str(q))
+    return float(m.group()) if m else None
 
 
 # ---------------------------------------------------------------------------
@@ -175,12 +186,16 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     days_until = (due - _today()).days
     is_low = _open_low_flag(conn, item)
 
-    # A manually-set workflow state overrides the date-based status.
+    # Empty = an explicitly recorded on-hand count of zero (or less).
+    qty_num = _parse_qty(item.get("quantity"))
+    is_empty = qty_num is not None and qty_num <= 0
+
+    # Priority: being restocked > empty/out of stock > flagged low > date-based.
     manual = item.get("restock_state") or ""
-    if manual == "out_of_stock":
-        status = "out"
-    elif manual == "restocking":
+    if manual == "restocking":
         status = "restocking"
+    elif is_empty or manual == "out_of_stock":
+        status = "out"
     elif is_low:
         status = "low"
     elif days_until < 0:
@@ -196,6 +211,7 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     item["days_until"] = days_until
     item["status"] = status
     item["is_low"] = is_low
+    item["is_empty"] = is_empty
     item["restock_state"] = manual
     item["suggestion"] = _suggestion_for(conn, item)
     return item

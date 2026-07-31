@@ -192,18 +192,18 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     qty_num = _parse_qty(item.get("quantity"))
     is_empty = qty_num is not None and qty_num <= 0
 
-    # The on-hand quantity (and low flag) determine the status even when an item
-    # has been ordered: empty stays "out of stock", flagged stays "running low".
-    # An ordered item that still HAS stock is shown under "Coming up" (on the way).
-    # 'Ordered' is also surfaced as an additive badge regardless of the status.
+    # Once ordered, the item shows as "Coming up" on the dashboard regardless of
+    # stock — the order is on the way (a 🛒 Ordered badge is also shown). Otherwise
+    # the on-hand quantity / low flag decide: empty → Out of stock, flagged →
+    # Running low, else date-based.
     manual = item.get("restock_state") or ""
     is_ordered = manual == "ordered"
-    if is_empty or manual == "out_of_stock":
+    if is_ordered:
+        status = "soon"          # ordered → Coming up
+    elif is_empty or manual == "out_of_stock":
         status = "out"
     elif is_low:
         status = "low"
-    elif is_ordered:
-        status = "soon"          # ordered + has stock → Coming up
     elif days_until < 0:
         status = "overdue"
     elif days_until == 0:

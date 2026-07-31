@@ -141,7 +141,7 @@ function render() {
 
     const metaBits = [];
     let stock;
-    if (it.is_empty) stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
+    if (it.is_empty && it.status === "out") stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
     else if (it.quantity) stock = `<span class="qty-strong">${it.quantity} ${it.unit || ""}</span> on hand`;
     else stock = `<span class="muted">stock not set</span>`;
     metaBits.push(stock);

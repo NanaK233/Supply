@@ -96,7 +96,7 @@ img, svg { max-width: 100%; }
 .card.soon { border-left-color: var(--soon); }
 .card.ok { border-left-color: var(--ok); }
 .card.out { border-left-color: #991b1b; }
-.card.restocking { border-left-color: #0d9488; }
+.card.ordered { border-left-color: #0d9488; }
 
 .card-main { flex: 1; min-width: 0; }
 .card-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -121,7 +121,7 @@ img, svg { max-width: 100%; }
 .status-pill.soon { background: #dbeafe; color: var(--soon); }
 .status-pill.ok { background: #dcfce7; color: var(--ok); }
 .status-pill.out { background: #991b1b; color: #fff; }
-.status-pill.restocking { background: #ccfbf1; color: #0f766e; }
+.status-pill.ordered { background: #ccfbf1; color: #0f766e; }
 
 .card-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 

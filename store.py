@@ -75,11 +75,13 @@ def init_db():
         );
         """
     )
-    # Migration: manual restock workflow state ('' | 'out_of_stock' | 'restocking').
+    # Migration: manual restock workflow state ('' | 'out_of_stock' | 'ordered').
     try:
         conn.execute("ALTER TABLE items ADD COLUMN restock_state TEXT NOT NULL DEFAULT ''")
     except sqlite3.OperationalError:
         pass  # column already exists
+    # Migration: the old 'restocking' state was renamed to 'ordered'.
+    conn.execute("UPDATE items SET restock_state='ordered' WHERE restock_state='restocking'")
     conn.commit()
     conn.close()
 
@@ -190,10 +192,10 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     qty_num = _parse_qty(item.get("quantity"))
     is_empty = qty_num is not None and qty_num <= 0
 
-    # Priority: being restocked > empty/out of stock > flagged low > date-based.
+    # Priority: ordered (on the way) > empty/out of stock > flagged low > date-based.
     manual = item.get("restock_state") or ""
-    if manual == "restocking":
-        status = "restocking"
+    if manual == "ordered":
+        status = "ordered"
     elif is_empty or manual == "out_of_stock":
         status = "out"
     elif is_low:
@@ -231,7 +233,7 @@ def list_items(include_archived=False):
     conn.close()
 
     order = {"out": 0, "low": 1, "overdue": 2, "due": 3, "soon": 4,
-             "restocking": 5, "ok": 6}
+             "ordered": 5, "ok": 6}
     items.sort(key=lambda i: (order.get(i["status"], 9), i["days_until"]))
     return items
 
@@ -343,18 +345,18 @@ def mark_restocked(item_id):
 
 
 # Values accepted by set_restock_state, mapped to the DB column value.
-RESTOCK_STATES = {"out_of_stock", "restocking", "restocked"}
+RESTOCK_STATES = {"out_of_stock", "ordered", "restocked"}
 
 
 def set_restock_state(item_id, state):
     """Apply a workflow state from the status menu.
 
     'restocked'   -> reset the clock (delegates to mark_restocked)
-    'out_of_stock'/'restocking' -> set the manual state, keep the schedule.
+    'out_of_stock'/'ordered' -> set the manual state, keep the schedule.
     """
     if state == "restocked":
         return mark_restocked(item_id)
-    if state not in ("out_of_stock", "restocking"):
+    if state not in ("out_of_stock", "ordered"):
         return None
     conn = _connect()
     row = conn.execute("SELECT id FROM items WHERE id=?", (item_id,)).fetchone()

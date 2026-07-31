@@ -33,7 +33,7 @@ function toast(msg) {
 
 const STATUS_LABEL = {
   out: "Out of stock", low: "Running low", overdue: "Overdue", due: "Due today",
-  soon: "Coming up", restocking: "Restocking", ok: "On track",
+  soon: "Coming up", ordered: "Ordered", ok: "On track",
 };
 
 function whenText(it) {
@@ -166,7 +166,7 @@ function render() {
     // Empty / out of stock / restocking show a plain state; others append the date.
     let pillText;
     if (it.is_empty) pillText = "Empty · restock now";
-    else if (it.status === "out" || it.status === "restocking") pillText = STATUS_LABEL[it.status];
+    else if (it.status === "out" || it.status === "ordered") pillText = STATUS_LABEL[it.status];
     else pillText = `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
     const pill = el("span", `status-pill ${it.status}`, pillText);
 
@@ -201,7 +201,7 @@ function render() {
 // A "Status ▾" dropdown replacing the old single Restocked button.
 const STATE_OPTIONS = [
   { state: "out_of_stock", label: "⛔ Out of stock", done: "marked out of stock" },
-  { state: "restocking", label: "🔄 Restocking", done: "marked as restocking" },
+  { state: "ordered", label: "🛒 Ordered", done: "marked as ordered" },
   { state: "restocked", label: "✓ Restocked", done: "marked restocked" },
 ];
 

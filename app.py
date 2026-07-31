@@ -164,21 +164,29 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "Not found"}, 404)
             return self._json(result)
 
-        # restock / flag-low — staff + admin
-        m = re.match(r"^/api/items/(\d+)/(restock|flag-low)$", path)
+        # flag-low — staff + admin
+        m = re.match(r"^/api/items/(\d+)/flag-low$", path)
         if m:
             if self._require("admin", "staff") is None:
                 return
-            fn = {"restock": store.mark_restocked, "flag-low": store.flag_low}[m.group(2)]
-            result = fn(int(m.group(1)))
+            result = store.flag_low(int(m.group(1)))
             if result is None:
                 return self._json({"error": "Not found"}, 404)
             return self._json(result)
 
-        # status menu (out of stock / restocking / restocked) — staff + admin
+        # restock + status menu (out of stock / restocking / restocked) — ADMIN only
+        m = re.match(r"^/api/items/(\d+)/restock$", path)
+        if m:
+            if self._require("admin") is None:
+                return
+            result = store.mark_restocked(int(m.group(1)))
+            if result is None:
+                return self._json({"error": "Not found"}, 404)
+            return self._json(result)
+
         m = re.match(r"^/api/items/(\d+)/state$", path)
         if m:
-            if self._require("admin", "staff") is None:
+            if self._require("admin") is None:
                 return
             state = self._body().get("state")
             if state not in store.RESTOCK_STATES:

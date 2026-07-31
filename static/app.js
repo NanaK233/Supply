@@ -172,7 +172,8 @@ function render() {
     const actions = el("div", "card-actions");
     const stockBtn = el("button", "btn small", "📦 Stock");
     stockBtn.onclick = () => openStock(it);
-    actions.append(stockBtn, buildStatusMenu(it));
+    actions.append(stockBtn);
+    if (isAdmin()) actions.append(buildStatusMenu(it));  // Status is admin-only
     const low = el("button", "btn small", "⚠ Flag low");
     low.onclick = () => act(it.id, "flag-low", `${it.name} flagged as low`);
     actions.append(low);

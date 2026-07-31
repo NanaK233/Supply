@@ -164,10 +164,10 @@ function render() {
       main.append(s);
     }
 
-    // Out of stock / ordered-coming-up show a plain state; others append the date.
+    // The pill always shows the item's real status; the 🛒 Ordered badge (added
+    // above) is what indicates an order is on the way.
     let pillText;
     if (it.status === "out") pillText = it.is_empty ? "Empty · restock now" : "Out of stock";
-    else if (it.ordered && it.status === "soon") pillText = "Coming up";
     else pillText = `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
     const pill = el("span", `status-pill ${it.status}`, pillText);
 
@@ -244,7 +244,12 @@ async function setState(id, stateValue, msg) {
 
 function renderStats() {
   const counts = { out: 0, low: 0, overdue: 0, due: 0, soon: 0 };
-  for (const it of state.items) if (counts[it.status] != null) counts[it.status]++;
+  for (const it of state.items) {
+    if (counts[it.status] != null) counts[it.status]++;
+    // Ordered items ALSO count toward "Coming up" — they appear in both their
+    // own status bucket (e.g. Out of stock) and Coming up.
+    if (it.ordered && it.status !== "soon") counts.soon++;
+  }
   const defs = [["out", "Out of stock"], ["low", "Running low"], ["overdue", "Overdue"],
                 ["due", "Due today"], ["soon", "Coming up"]];
   const stats = $("#stats");

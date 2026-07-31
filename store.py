@@ -192,15 +192,13 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     qty_num = _parse_qty(item.get("quantity"))
     is_empty = qty_num is not None and qty_num <= 0
 
-    # Once ordered, the item shows as "Coming up" on the dashboard regardless of
-    # stock — the order is on the way (a 🛒 Ordered badge is also shown). Otherwise
-    # the on-hand quantity / low flag decide: empty → Out of stock, flagged →
-    # Running low, else date-based.
+    # An item always shows its real stock status: empty → Out of stock, flagged →
+    # Running low, else date-based. 'ordered' is an INDEPENDENT flag — an ordered
+    # item ALSO counts under "Coming up" on the dashboard (it appears in both its
+    # own bucket and Coming up), surfaced via item['ordered'] + the 🛒 badge.
     manual = item.get("restock_state") or ""
     is_ordered = manual == "ordered"
-    if is_ordered:
-        status = "soon"          # ordered → Coming up
-    elif is_empty or manual == "out_of_stock":
+    if is_empty or manual == "out_of_stock":
         status = "out"
     elif is_low:
         status = "low"

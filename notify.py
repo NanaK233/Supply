@@ -91,7 +91,8 @@ def _fmt_line(it):
             else "due today" if it["days_until"] == 0
             else f"in {it['days_until']} day(s)")
     qty = f" ({it['quantity']} {it['unit']})".rstrip() if it["quantity"] else ""
-    return f"  • {it['name']}{qty} {who} — {when}"
+    ordered = " — 🛒 ordered" if it.get("ordered") else ""
+    return f"  • {it['name']}{qty} {who} — {when}{ordered}"
 
 
 def render_text(digest):
@@ -130,7 +131,9 @@ def render_html(digest):
             + f" <span style='color:#888'>[{it['owner']}]</span> — "
             + ("<b style='color:#c0392b'>OVERDUE</b>" if it['days_until'] < 0
                else "due today" if it['days_until'] == 0
-               else f"in {it['days_until']} day(s)") + "</li>"
+               else f"in {it['days_until']} day(s)")
+            + (" <span style='color:#0f766e'>🛒 ordered</span>"
+               if it.get('ordered') else "") + "</li>"
             for it in rows)
         return (f"<h3 style='margin:16px 0 4px;color:{color}'>{label}</h3>"
                 f"<ul style='margin:0 0 8px;padding-left:20px'>{lis}</ul>")

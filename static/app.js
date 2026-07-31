@@ -136,11 +136,12 @@ function render() {
     const title = el("div", "card-title");
     title.append(el("span", "name", it.name));
     title.append(el("span", `owner-badge ${it.owner}`, it.owner));
+    if (it.ordered) title.append(el("span", "ordered-badge", "🛒 Ordered"));
     main.append(title);
 
     const metaBits = [];
     let stock;
-    if (it.is_empty && it.status === "out") stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
+    if (it.is_empty) stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
     else if (it.quantity) stock = `<span class="qty-strong">${it.quantity} ${it.unit || ""}</span> on hand`;
     else stock = `<span class="muted">stock not set</span>`;
     metaBits.push(stock);
@@ -163,10 +164,10 @@ function render() {
       main.append(s);
     }
 
-    // Empty / out of stock / restocking show a plain state; others append the date.
+    // Out of stock / ordered-coming-up show a plain state; others append the date.
     let pillText;
     if (it.status === "out") pillText = it.is_empty ? "Empty · restock now" : "Out of stock";
-    else if (it.status === "ordered") pillText = "Ordered";
+    else if (it.ordered && it.status === "soon") pillText = "Coming up";
     else pillText = `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
     const pill = el("span", `status-pill ${it.status}`, pillText);
 

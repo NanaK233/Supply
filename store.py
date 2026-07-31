@@ -192,14 +192,18 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     qty_num = _parse_qty(item.get("quantity"))
     is_empty = qty_num is not None and qty_num <= 0
 
-    # Priority: ordered (on the way) > empty/out of stock > flagged low > date-based.
+    # The on-hand quantity (and low flag) determine the status even when an item
+    # has been ordered: empty stays "out of stock", flagged stays "running low".
+    # An ordered item that still HAS stock is shown under "Coming up" (on the way).
+    # 'Ordered' is also surfaced as an additive badge regardless of the status.
     manual = item.get("restock_state") or ""
-    if manual == "ordered":
-        status = "ordered"
-    elif is_empty or manual == "out_of_stock":
+    is_ordered = manual == "ordered"
+    if is_empty or manual == "out_of_stock":
         status = "out"
     elif is_low:
         status = "low"
+    elif is_ordered:
+        status = "soon"          # ordered + has stock → Coming up
     elif days_until < 0:
         status = "overdue"
     elif days_until == 0:
@@ -214,6 +218,7 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
     item["status"] = status
     item["is_low"] = is_low
     item["is_empty"] = is_empty
+    item["ordered"] = is_ordered
     item["restock_state"] = manual
     item["suggestion"] = _suggestion_for(conn, item)
     return item
@@ -232,8 +237,7 @@ def list_items(include_archived=False):
     items = [_decorate(conn, r) for r in rows]
     conn.close()
 
-    order = {"out": 0, "low": 1, "overdue": 2, "due": 3, "soon": 4,
-             "ordered": 5, "ok": 6}
+    order = {"out": 0, "low": 1, "overdue": 2, "due": 3, "soon": 4, "ok": 5}
     items.sort(key=lambda i: (order.get(i["status"], 9), i["days_until"]))
     return items
 
@@ -298,18 +302,31 @@ def update_item(item_id, data):
 
 
 def update_quantity(item_id, quantity, unit=None):
-    """Staff-safe: update only the on-hand stock level (not the schedule)."""
+    """Update the on-hand stock level (not the schedule).
+
+    Refreshing stock to a positive amount means the order arrived: this clears any
+    'ordered'/'out of stock' state and the running-low flag, so the item stops
+    showing as urgent. Setting it to 0 (or leaving it empty) does not clear those.
+    """
     conn = _connect()
-    row = conn.execute("SELECT id FROM items WHERE id=?", (item_id,)).fetchone()
+    row = conn.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
     if not row:
         conn.close()
         return None
+    quantity = str(quantity).strip()
     if unit is None:
-        conn.execute("UPDATE items SET quantity=? WHERE id=?",
-                     (str(quantity).strip(), item_id))
+        conn.execute("UPDATE items SET quantity=? WHERE id=?", (quantity, item_id))
     else:
         conn.execute("UPDATE items SET quantity=?, unit=? WHERE id=?",
-                     (str(quantity).strip(), unit.strip(), item_id))
+                     (quantity, unit.strip(), item_id))
+
+    qty_num = _parse_qty(quantity)
+    if qty_num is not None and qty_num > 0:
+        if (row["restock_state"] or "") in ("ordered", "out_of_stock"):
+            conn.execute("UPDATE items SET restock_state='' WHERE id=?", (item_id,))
+        # A live low flag is cleared by recording a stock refresh (schedule stays).
+        if _open_low_flag(conn, row):
+            _log_event(conn, item_id, "restocked", detail="stock refreshed")
     conn.commit()
     conn.close()
     return get_item(item_id)
@@ -324,11 +341,13 @@ def delete_item(item_id):
 
 
 def _log_event(conn, item_id, etype, days_early=None, detail=""):
+    # microsecond precision so two events in the same second still order correctly
+    # (e.g. a stock refresh vs. a low flag), which the low-flag check depends on.
     conn.execute(
         "INSERT INTO events (item_id, type, days_early, detail, created_at) "
         "VALUES (?,?,?,?,?)",
         (item_id, etype, days_early, detail,
-         datetime.now().isoformat(timespec="seconds")),
+         datetime.now().isoformat(timespec="microseconds")),
     )
 
 

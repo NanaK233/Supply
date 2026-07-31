@@ -7,7 +7,7 @@ Runs on the Python 3 that's already on your Mac — **nothing to install.**
 ## Run it
 
 ```bash
-cd ~/restock-site
+cd ~/Desktop/Supply
 python3 app.py
 ```
 
@@ -110,9 +110,11 @@ Note: the digest only sends when something actually needs attention (due soon,
 overdue, running low, or a pending suggestion) — so no daily "all clear" spam.
 Your Mac must be on/awake at (or after) 8am for that day's send.
 
-**Important:** keep this folder at `~/restock-site`. Don't move it back to the
-Desktop/Documents/Downloads — macOS blocks background jobs from reading those, and
-the 8am send would silently fail.
+**Note:** this folder lives at `~/Desktop/Supply`. macOS blocks *background* jobs
+(launchd/cron) from reading Desktop/Documents/Downloads, so a **local** scheduled
+send won't work here — but the daily digest now runs in the cloud (GitHub Actions,
+below), which is unaffected. If you ever switch back to a local Mac scheduler, move
+this folder out of the Desktop first.
 
 ## Cloud daily digest (free — GitHub Actions)
 

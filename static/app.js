@@ -140,7 +140,7 @@ function render() {
 
     const metaBits = [];
     let stock;
-    if (it.is_empty) stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
+    if (it.is_empty && it.status === "out") stock = `<span class="qty-empty">⚠ EMPTY — restock now</span>`;
     else if (it.quantity) stock = `<span class="qty-strong">${it.quantity} ${it.unit || ""}</span> on hand`;
     else stock = `<span class="muted">stock not set</span>`;
     metaBits.push(stock);
@@ -165,8 +165,8 @@ function render() {
 
     // Empty / out of stock / restocking show a plain state; others append the date.
     let pillText;
-    if (it.is_empty) pillText = "Empty · restock now";
-    else if (it.status === "out" || it.status === "ordered") pillText = STATUS_LABEL[it.status];
+    if (it.status === "out") pillText = it.is_empty ? "Empty · restock now" : "Out of stock";
+    else if (it.status === "ordered") pillText = "Ordered";
     else pillText = `${STATUS_LABEL[it.status]} · ${whenText(it)}`;
     const pill = el("span", `status-pill ${it.status}`, pillText);
 

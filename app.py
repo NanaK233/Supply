@@ -164,10 +164,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "Not found"}, 404)
             return self._json(result)
 
-        # flag-low — staff + admin
+        # flag-low — staff only (admin uses the status menu instead)
         m = re.match(r"^/api/items/(\d+)/flag-low$", path)
         if m:
-            if self._require("admin", "staff") is None:
+            if self._require("staff") is None:
                 return
             result = store.flag_low(int(m.group(1)))
             if result is None:

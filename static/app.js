@@ -173,10 +173,13 @@ function render() {
     const stockBtn = el("button", "btn small", "📦 Stock");
     stockBtn.onclick = () => openStock(it);
     actions.append(stockBtn);
-    if (isAdmin()) actions.append(buildStatusMenu(it));  // Status is admin-only
-    const low = el("button", "btn small", "⚠ Flag low");
-    low.onclick = () => act(it.id, "flag-low", `${it.name} flagged as low`);
-    actions.append(low);
+    if (isAdmin()) {
+      actions.append(buildStatusMenu(it));  // Status is admin-only
+    } else {
+      const low = el("button", "btn small", "⚠ Flag low");  // Flag low is staff-only
+      low.onclick = () => act(it.id, "flag-low", `${it.name} flagged as low`);
+      actions.append(low);
+    }
 
     if (isAdmin()) {
       const edit = el("button", "btn small ghost", "Edit");

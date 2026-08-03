@@ -265,7 +265,7 @@ def create_item(data):
     last = data.get("last_restocked") or _today().isoformat()
     cur = conn.execute(
         "INSERT INTO items (name, owner, category, quantity, unit, cadence_days, "
-        "last_restocked, notes, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+        "last_restocked, notes, quantity_needed, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
         (
             data["name"].strip(),
             data.get("owner", "Shared"),
@@ -275,6 +275,7 @@ def create_item(data):
             int(data.get("cadence_days", 7)),
             last,
             data.get("notes", "").strip(),
+            str(data.get("quantity_needed", "")).strip(),
             now,
         ),
     )
@@ -293,7 +294,7 @@ def update_item(item_id, data):
 
     old_cadence = existing["cadence_days"]
     fields = ["name", "owner", "category", "quantity", "unit", "cadence_days",
-              "last_restocked", "notes"]
+              "last_restocked", "notes", "quantity_needed"]
     updates = {f: data[f] for f in fields if f in data}
     if "cadence_days" in updates:
         updates["cadence_days"] = int(updates["cadence_days"])

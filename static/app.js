@@ -350,6 +350,7 @@ function openEdit(it) {
   f.category.value = it.category || "";
   f.quantity.value = it.quantity || "";
   f.unit.value = it.unit || "";
+  f.quantity_needed.value = it.quantity_needed || "";
   f.cadence_days.value = it.cadence_days;
   f.last_restocked.value = it.last_restocked;
   f.notes.value = it.notes || "";
@@ -362,6 +363,7 @@ async function saveItem(e) {
   const data = {
     name: f.name.value, owner: f.owner.value, category: f.category.value,
     quantity: f.quantity.value, unit: f.unit.value,
+    quantity_needed: f.quantity_needed.value,
     cadence_days: f.cadence_days.value, last_restocked: f.last_restocked.value,
     notes: f.notes.value,
   };

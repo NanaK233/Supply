@@ -184,7 +184,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             b = self._body()
             result = store.update_quantity(int(m.group(1)), b.get("quantity", ""),
-                                           b.get("unit"))
+                                           b.get("unit"), b.get("needed"))
             if result is None:
                 return self._json({"error": "Not found"}, 404)
             return self._json(result)

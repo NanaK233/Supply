@@ -159,6 +159,7 @@ function render() {
     else if (it.quantity) stock = `<span class="qty-strong">${it.quantity} ${it.unit || ""}</span> on hand`;
     else stock = `<span class="muted">stock not set</span>`;
     metaBits.push(stock);
+    if (it.quantity_needed) metaBits.push(`<span class="qty-needed">needs ${it.quantity_needed}</span>`);
     if (it.category) metaBits.push(it.category);
     metaBits.push(`every ${it.cadence_days}d`);
     metaBits.push(`next: ${it.next_due}`);
@@ -379,6 +380,7 @@ function openStock(it) {
   f.id.value = it.id;
   f.quantity.value = it.quantity || "";
   f.unit.value = it.unit || "";
+  f.needed.value = it.quantity_needed || "";
   $("#stockItemName").textContent = it.name;
   $("#stockModal").hidden = false;
   f.quantity.focus();
@@ -389,7 +391,7 @@ async function saveStock(e) {
   const f = $("#stockForm");
   try {
     await api("POST", `/api/items/${f.id.value}/quantity`,
-              { quantity: f.quantity.value, unit: f.unit.value });
+              { quantity: f.quantity.value, unit: f.unit.value, needed: f.needed.value });
     $("#stockModal").hidden = true;
     await load();
     toast("Stock updated");

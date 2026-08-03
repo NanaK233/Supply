@@ -82,6 +82,11 @@ def init_db():
         pass  # column already exists
     # Migration: the old 'restocking' state was renamed to 'ordered'.
     conn.execute("UPDATE items SET restock_state='ordered' WHERE restock_state='restocking'")
+    # Migration: 'quantity needed' — how much is needed to restock.
+    try:
+        conn.execute("ALTER TABLE items ADD COLUMN quantity_needed TEXT NOT NULL DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.commit()
     conn.close()
 
@@ -305,8 +310,8 @@ def update_item(item_id, data):
     return get_item(item_id)
 
 
-def update_quantity(item_id, quantity, unit=None):
-    """Update the on-hand stock level (not the schedule).
+def update_quantity(item_id, quantity, unit=None, needed=None):
+    """Update the on-hand stock level (and optionally the unit / quantity needed).
 
     Refreshing stock to a positive amount means the order arrived: this clears any
     'ordered'/'out of stock' state and the running-low flag, so the item stops
@@ -318,11 +323,13 @@ def update_quantity(item_id, quantity, unit=None):
         conn.close()
         return None
     quantity = str(quantity).strip()
-    if unit is None:
-        conn.execute("UPDATE items SET quantity=? WHERE id=?", (quantity, item_id))
-    else:
-        conn.execute("UPDATE items SET quantity=?, unit=? WHERE id=?",
-                     (quantity, unit.strip(), item_id))
+    sets, params = ["quantity=?"], [quantity]
+    if unit is not None:
+        sets.append("unit=?"); params.append(unit.strip())
+    if needed is not None:
+        sets.append("quantity_needed=?"); params.append(str(needed).strip())
+    params.append(item_id)
+    conn.execute(f"UPDATE items SET {', '.join(sets)} WHERE id=?", params)
 
     qty_num = _parse_qty(quantity)
     if qty_num is not None and qty_num > 0:

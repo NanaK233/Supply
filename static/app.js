@@ -243,15 +243,15 @@ async function setState(id, stateValue, msg) {
 }
 
 function renderStats() {
-  const counts = { out: 0, low: 0, overdue: 0, due: 0, soon: 0 };
+  const counts = { out: 0, low: 0, overdue: 0, due: 0, ordered: 0 };
   for (const it of state.items) {
     if (counts[it.status] != null) counts[it.status]++;
-    // Ordered items ALSO count toward "Coming up" — they appear in both their
-    // own status bucket (e.g. Out of stock) and Coming up.
-    if (it.ordered && it.status !== "soon") counts.soon++;
+    // Ordered items get their own card — they still appear in their status bucket
+    // (e.g. Out of stock) AND here under "Ordered".
+    if (it.ordered) counts.ordered++;
   }
   const defs = [["out", "Out of stock"], ["low", "Running low"], ["overdue", "Overdue"],
-                ["due", "Due today"], ["soon", "Coming up"]];
+                ["due", "Due today"], ["ordered", "Ordered"]];
   const stats = $("#stats");
   stats.innerHTML = "";
   for (const [key, label] of defs) {

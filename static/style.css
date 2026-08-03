@@ -67,6 +67,7 @@ img, svg { max-width: 100%; }
 .stat.overdue .num { color: var(--overdue); }
 .stat.due .num { color: var(--due); }
 .stat.soon .num { color: var(--soon); }
+.stat.ordered .num { color: #0d9488; }
 .stat.out .num { color: #991b1b; }
 
 .toolbar {

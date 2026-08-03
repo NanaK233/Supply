@@ -1,14 +1,14 @@
-"""Vercel serverless entry for the API.
+# TEMP DEBUG — echo the path + headers Vercel passes, to fix routing.
+from http.server import BaseHTTPRequestHandler
+import json
 
-Vercel routes /api/* here (see vercel.json). Static files are served directly
-from public/ by Vercel. This reuses the existing request Handler from app.py,
-which already routes every /api/... path; static requests never reach it.
-"""
-
-import os
-import sys
-
-# Make the shared modules at the project root importable from inside /api.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from app import Handler as handler  # noqa: E402  (Vercel Python looks for `handler`)
+class handler(BaseHTTPRequestHandler):
+    def _dump(self):
+        info = {"path": self.path, "headers": {k: v for k, v in self.headers.items()}}
+        body = json.dumps(info, indent=2).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body)
+    def do_GET(self): self._dump()
+    def do_POST(self): self._dump()

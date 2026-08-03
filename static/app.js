@@ -317,11 +317,25 @@ async function removeItem(it) {
 }
 
 // ---- add / edit modal ----
+// Admin can assign any owner; staff can only pick themselves or Shared.
+function populateOwnerSelect(selected) {
+  const sel = $("#itemForm").owner;
+  const owners = isAdmin() ? ["Shared", "Eddie", "Danilo"] : [state.name, "Shared"];
+  sel.innerHTML = "";
+  for (const o of owners) {
+    const opt = document.createElement("option");
+    opt.value = o; opt.textContent = o;
+    sel.append(opt);
+  }
+  if (selected) sel.value = selected;
+}
+
 function openAdd() {
   $("#modalTitle").textContent = "Add item";
   const f = $("#itemForm");
   f.reset();
   f.id.value = "";
+  populateOwnerSelect(isAdmin() ? "Shared" : state.name);
   f.last_restocked.value = new Date().toISOString().slice(0, 10);
   $("#modal").hidden = false;
   f.name.focus();
@@ -332,6 +346,7 @@ function openEdit(it) {
   const f = $("#itemForm");
   f.id.value = it.id;
   f.name.value = it.name;
+  populateOwnerSelect(it.owner);
   f.owner.value = it.owner;
   f.category.value = it.category || "";
   f.quantity.value = it.quantity || "";

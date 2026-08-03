@@ -226,12 +226,18 @@ def _decorate(conn, row, lead_days=DEFAULT_LEAD_DAYS):
 # Public API
 # ---------------------------------------------------------------------------
 
-def list_items(include_archived=False):
+def list_items(include_archived=False, owners=None):
     conn = _connect()
     q = "SELECT * FROM items"
+    conds, params = [], []
     if not include_archived:
-        q += " WHERE archived=0"
-    rows = conn.execute(q).fetchall()
+        conds.append("archived=0")
+    if owners is not None:  # restrict to these owners (e.g. staff: [name, 'Shared'])
+        conds.append("owner IN (%s)" % ",".join("?" * len(owners)))
+        params.extend(owners)
+    if conds:
+        q += " WHERE " + " AND ".join(conds)
+    rows = conn.execute(q, params).fetchall()
     items = [_decorate(conn, r) for r in rows]
     conn.close()
 

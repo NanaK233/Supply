@@ -60,6 +60,21 @@ class Handler(BaseHTTPRequestHandler):
             return None
         return sess["role"]
 
+    def _owns(self, item_id):
+        """True if the caller may act on this item: admin → any; staff → only
+        their own or Shared items. Sends 403/404 and returns False otherwise."""
+        sess = self._session()
+        if sess["role"] == "admin":
+            return True
+        it = store.get_item(item_id)
+        if it is None:
+            self._json({"error": "Not found"}, 404)
+            return False
+        if it["owner"] not in (sess["name"], "Shared"):
+            self._json({"error": "Not your item"}, 403)
+            return False
+        return True
+
     def _serve_static(self, path):
         if path in ("/", ""):
             path = "/index.html"
@@ -96,9 +111,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"users": [u["name"] for u in auth.users(cfg)]})
 
         if path == "/api/items":
-            if self._require() is None:
-                return
-            return self._json({"items": store.list_items(),
+            sess = self._session()
+            if sess is None:
+                return self._json({"error": "Not signed in"}, 401)
+            # Staff see only their own items + Shared; admin sees everything.
+            owners = None if sess["role"] == "admin" else [sess["name"], "Shared"]
+            return self._json({"items": store.list_items(owners=owners),
                                "owners": store.OWNERS})
 
         if path == "/api/summary":
@@ -150,12 +168,19 @@ class Handler(BaseHTTPRequestHandler):
             data = self._body()
             if not data.get("name", "").strip():
                 return self._json({"error": "Name is required"}, 400)
+            # Staff can only create their own or Shared items (never another
+            # staffer's), so they always see what they add.
+            sess = self._session()
+            if sess["role"] == "staff" and data.get("owner") not in (sess["name"], "Shared"):
+                data["owner"] = sess["name"]
             return self._json(store.create_item(data), 201)
 
-        # stock-level update — staff + admin
+        # stock-level update — staff + admin (staff limited to own/shared items)
         m = re.match(r"^/api/items/(\d+)/quantity$", path)
         if m:
             if self._require("admin", "staff") is None:
+                return
+            if not self._owns(int(m.group(1))):
                 return
             b = self._body()
             result = store.update_quantity(int(m.group(1)), b.get("quantity", ""),
@@ -168,6 +193,8 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/api/items/(\d+)/flag-low$", path)
         if m:
             if self._require("staff") is None:
+                return
+            if not self._owns(int(m.group(1))):
                 return
             result = store.flag_low(int(m.group(1)))
             if result is None:

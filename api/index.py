@@ -1,6 +1,5 @@
-"""Vercel serverless entry for the API. Vercel routes /api/* here (see vercel.json);
-static files are served from public/ directly. Reuses app.py's request Handler."""
+"""Vercel serverless entry. /api/* is routed here; static served from public/."""
 import os
 import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # api/ (siblings)
 from app import Handler as handler  # noqa: E402

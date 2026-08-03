@@ -7,7 +7,7 @@ schedule. Alert channel + credentials come from environment variables.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # api/ (siblings)
 
 from http.server import BaseHTTPRequestHandler  # noqa: E402
 import notify  # noqa: E402

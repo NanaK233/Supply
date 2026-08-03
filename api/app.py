@@ -20,7 +20,12 @@ import sync
 import scheduler
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# public/ lives at the project root (one level up from this api/ dir). On Vercel
+# static is served directly from public/, so this path is only used when running
+# the app standalone (locally).
 STATIC_DIR = os.path.join(HERE, "public")
+if not os.path.isdir(STATIC_DIR):
+    STATIC_DIR = os.path.join(HERE, os.pardir, "public")
 PORT = int(os.environ.get("PORT") or os.environ.get("RESTOCK_PORT") or "8765")
 
 

@@ -1,6 +1,15 @@
 "use strict";
 
-let state = { items: [], owner: "All", search: "", role: null, name: null };
+let state = { items: [], owner: "All", search: "", role: null, name: null, statusFilter: null };
+
+// Labels for the clickable dashboard cards, and how each one matches an item.
+const STAT_FILTERS = {
+  out: { label: "Out of stock", match: (it) => it.status === "out" },
+  low: { label: "Running low", match: (it) => it.status === "low" },
+  overdue: { label: "Overdue", match: (it) => it.status === "overdue" },
+  due: { label: "Due today", match: (it) => it.status === "due" },
+  ordered: { label: "Ordered", match: (it) => it.ordered },
+};
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, html) => {
@@ -123,11 +132,17 @@ function render() {
 
   let items = state.items;
   if (state.owner !== "All") items = items.filter((i) => i.owner === state.owner);
+  if (state.statusFilter) items = items.filter(STAT_FILTERS[state.statusFilter].match);
   if (state.search) {
     const q = state.search.toLowerCase();
     items = items.filter((i) => (i.name + " " + i.category).toLowerCase().includes(q));
   }
+
+  renderFilterBanner();
   $("#empty").hidden = items.length > 0;
+  $("#empty").innerHTML = state.statusFilter
+    ? `No items under <b>${STAT_FILTERS[state.statusFilter].label}</b>.`
+    : 'No items yet. Click <b>＋ Add item</b> to get started.';
 
   for (const it of items) {
     const card = el("div", `card ${it.status}`);
@@ -255,11 +270,32 @@ function renderStats() {
   const stats = $("#stats");
   stats.innerHTML = "";
   for (const [key, label] of defs) {
-    const s = el("div", `stat ${key}`);
+    const active = state.statusFilter === key;
+    const s = el("div", `stat ${key}${active ? " active" : ""}`);
     s.append(el("div", "num", String(counts[key])));
     s.append(el("div", "lbl", label));
+    s.setAttribute("role", "button");
+    s.setAttribute("tabindex", "0");
+    s.onclick = () => setStatusFilter(key);
+    s.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStatusFilter(key); } };
     stats.append(s);
   }
+}
+
+function setStatusFilter(key) {
+  state.statusFilter = state.statusFilter === key ? null : key;  // click again to clear
+  render();
+}
+
+function renderFilterBanner() {
+  const banner = $("#filterBanner");
+  if (!state.statusFilter) { banner.hidden = true; return; }
+  banner.innerHTML = "";
+  banner.append(el("span", "", `Showing <b>${STAT_FILTERS[state.statusFilter].label}</b>`));
+  const clear = el("button", "btn small ghost", "✕ Show all");
+  clear.onclick = () => setStatusFilter(state.statusFilter);
+  banner.append(clear);
+  banner.hidden = false;
 }
 
 async function load() {

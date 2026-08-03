@@ -14,3 +14,6 @@ __pycache__/
 # local Postgres connection string (never commit)
 .pg_url
 .env*
+
+# stale local SQLite db (now on Postgres)
+restock.db

@@ -20,7 +20,7 @@ import sync
 import scheduler
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(HERE, "static")
+STATIC_DIR = os.path.join(HERE, "public")
 PORT = int(os.environ.get("PORT") or os.environ.get("RESTOCK_PORT") or "8765")
 
 

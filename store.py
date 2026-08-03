@@ -1,21 +1,17 @@
-"""SQLite data layer for the restock site.
+"""Data layer for the restock site — PostgreSQL (psycopg2).
 
-One file database (restock.db) created automatically on first run.
-No external dependencies — pure Python standard library.
+Uses the POSTGRES_URL (or DATABASE_URL) environment variable. A tiny connection
+adapter mimics the sqlite3 API (execute/executescript/commit/close and ?-style
+placeholders) so the rest of the module reads the same as the original SQLite
+version — only the plumbing changed.
 """
 
-import sqlite3
 import os
 import re
-import shutil
 from datetime import date, datetime, timedelta
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-# On a cloud host, point RESTOCK_DATA_DIR at a persistent volume (e.g. /data) so
-# the database survives redeploys/restarts. Locally it just sits next to the code.
-DATA_DIR = os.environ.get("RESTOCK_DATA_DIR") or HERE
-DB_PATH = os.path.join(DATA_DIR, "restock.db")
-_BUNDLED_DB = os.path.join(HERE, "restock.db")
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 OWNERS = ["Eddie", "Danilo", "Shared"]
 
@@ -27,66 +23,78 @@ DEFAULT_LEAD_DAYS = 2
 SUGGEST_AFTER_EARLY_FLAGS = 2
 
 
+def _dsn():
+    dsn = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL")
+    if not dsn:
+        raise RuntimeError("POSTGRES_URL (or DATABASE_URL) environment variable is required")
+    return dsn
+
+
+class _Conn:
+    """sqlite3-style wrapper around a psycopg2 connection so the rest of the
+    module can keep using conn.execute('... ?', params).fetchone()."""
+
+    def __init__(self):
+        self._c = psycopg2.connect(_dsn())
+
+    def execute(self, sql, params=()):
+        cur = self._c.cursor(cursor_factory=RealDictCursor)
+        cur.execute(sql.replace("?", "%s"), params or None)
+        return cur
+
+    def executescript(self, script):
+        cur = self._c.cursor()
+        cur.execute(script)
+        cur.close()
+
+    def commit(self):
+        self._c.commit()
+
+    def close(self):
+        self._c.close()
+
+
 def _connect():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    return _Conn()
 
 
 def init_db():
-    # Ensure the data directory exists, and on a fresh persistent volume seed it
-    # from the bundled database so existing items carry over on first deploy.
-    if DATA_DIR != HERE:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        if not os.path.exists(DB_PATH) and os.path.exists(_BUNDLED_DB):
-            shutil.copy2(_BUNDLED_DB, DB_PATH)
     conn = _connect()
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS items (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            name           TEXT NOT NULL,
-            owner          TEXT NOT NULL DEFAULT 'Shared',
-            category       TEXT DEFAULT '',
-            quantity       TEXT DEFAULT '',
-            unit           TEXT DEFAULT '',
-            cadence_days   INTEGER NOT NULL DEFAULT 7,
-            last_restocked TEXT NOT NULL,
-            notes          TEXT DEFAULT '',
-            archived       INTEGER NOT NULL DEFAULT 0,
-            created_at     TEXT NOT NULL
+            id              SERIAL PRIMARY KEY,
+            name            TEXT NOT NULL,
+            owner           TEXT NOT NULL DEFAULT 'Shared',
+            category        TEXT DEFAULT '',
+            quantity        TEXT DEFAULT '',
+            unit            TEXT DEFAULT '',
+            cadence_days    INTEGER NOT NULL DEFAULT 7,
+            last_restocked  TEXT NOT NULL,
+            notes           TEXT DEFAULT '',
+            archived        INTEGER NOT NULL DEFAULT 0,
+            created_at      TEXT NOT NULL,
+            restock_state   TEXT NOT NULL DEFAULT '',
+            quantity_needed TEXT NOT NULL DEFAULT ''
         );
 
         CREATE TABLE IF NOT EXISTS events (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            id         SERIAL PRIMARY KEY,
             item_id    INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-            type       TEXT NOT NULL,          -- 'restocked' | 'flagged_low' | 'cadence_changed'
-            days_early INTEGER,                -- for flagged_low: days before due it was flagged
+            type       TEXT NOT NULL,
+            days_early INTEGER,
             detail     TEXT DEFAULT '',
             created_at TEXT NOT NULL
         );
 
-        -- Suggestions the user has dismissed, so we don't nag again until
-        -- new evidence (a newer flag) arrives.
         CREATE TABLE IF NOT EXISTS suggestion_dismissals (
-            item_id       INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
-            dismissed_at  TEXT NOT NULL
+            item_id      INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+            dismissed_at TEXT NOT NULL
         );
         """
     )
-    # Migration: manual restock workflow state ('' | 'out_of_stock' | 'ordered').
-    try:
-        conn.execute("ALTER TABLE items ADD COLUMN restock_state TEXT NOT NULL DEFAULT ''")
-    except sqlite3.OperationalError:
-        pass  # column already exists
-    # Migration: the old 'restocking' state was renamed to 'ordered'.
+    # Legacy rename (harmless on a fresh database).
     conn.execute("UPDATE items SET restock_state='ordered' WHERE restock_state='restocking'")
-    # Migration: 'quantity needed' — how much is needed to restock.
-    try:
-        conn.execute("ALTER TABLE items ADD COLUMN quantity_needed TEXT NOT NULL DEFAULT ''")
-    except sqlite3.OperationalError:
-        pass  # column already exists
     conn.commit()
     conn.close()
 
@@ -265,7 +273,8 @@ def create_item(data):
     last = data.get("last_restocked") or _today().isoformat()
     cur = conn.execute(
         "INSERT INTO items (name, owner, category, quantity, unit, cadence_days, "
-        "last_restocked, notes, quantity_needed, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "last_restocked, notes, quantity_needed, created_at) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id",
         (
             data["name"].strip(),
             data.get("owner", "Shared"),
@@ -279,7 +288,7 @@ def create_item(data):
             now,
         ),
     )
-    item_id = cur.lastrowid
+    item_id = cur.fetchone()["id"]
     conn.commit()
     conn.close()
     return get_item(item_id)
@@ -440,7 +449,7 @@ def dismiss_suggestion(item_id):
     conn = _connect()
     conn.execute(
         "INSERT INTO suggestion_dismissals (item_id, dismissed_at) VALUES (?,?) "
-        "ON CONFLICT(item_id) DO UPDATE SET dismissed_at=excluded.dismissed_at",
+        "ON CONFLICT (item_id) DO UPDATE SET dismissed_at=excluded.dismissed_at",
         (item_id, datetime.now().isoformat(timespec="seconds")),
     )
     conn.commit()

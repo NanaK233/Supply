@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/index.py": { "includeFiles": "*.py" },
+    "api/cron.py": { "includeFiles": "*.py" }
+  },
+  "rewrites": [
+    { "source": "/api/cron", "destination": "/api/cron" },
+    { "source": "/api/(.*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 4 * * *" }
+  ]
+}

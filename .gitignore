@@ -10,3 +10,7 @@ __pycache__/
 
 # NOTE: restock.db IS committed on purpose — the cloud digest reads your
 # schedule from it. It contains no passwords (those are in config.json / Secrets).
+
+# local Postgres connection string (never commit)
+.pg_url
+.env*

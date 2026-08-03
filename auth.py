@@ -22,6 +22,11 @@ _SEP = "|"  # names never contain this
 
 
 def _secret():
+    # On a serverless host (e.g. Vercel) the filesystem is ephemeral, so use a
+    # stable secret from the environment. Locally, fall back to a generated file.
+    env = os.environ.get("RESTOCK_SECRET")
+    if env:
+        return env.encode()
     if not os.path.exists(SECRET_PATH):
         with open(SECRET_PATH, "wb") as f:
             f.write(os.urandom(32))

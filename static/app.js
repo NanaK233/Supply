@@ -6,7 +6,6 @@ let state = { items: [], owner: "All", search: "", role: null, name: null, statu
 const STAT_FILTERS = {
   out: { label: "Out of stock", match: (it) => it.status === "out" },
   low: { label: "Running low", match: (it) => it.status === "low" },
-  overdue: { label: "Overdue", match: (it) => it.status === "overdue" },
   shared: { label: "Shared", match: (it) => it.owner === "Shared" },
   ordered: { label: "Ordered", match: (it) => it.ordered },
 };
@@ -258,13 +257,13 @@ async function setState(id, stateValue, msg) {
 }
 
 function renderStats() {
-  const counts = { out: 0, low: 0, overdue: 0, shared: 0, ordered: 0 };
+  const counts = { out: 0, low: 0, shared: 0, ordered: 0 };
   for (const it of state.items) {
-    if (counts[it.status] != null) counts[it.status]++;      // out / low / overdue
+    if (counts[it.status] != null) counts[it.status]++;      // out / low
     if (it.owner === "Shared") counts.shared++;              // shared items
     if (it.ordered) counts.ordered++;                        // ordered items
   }
-  const defs = [["out", "Out of stock"], ["low", "Running low"], ["overdue", "Overdue"],
+  const defs = [["out", "Out of stock"], ["low", "Running low"],
                 ["shared", "Shared"], ["ordered", "Ordered"]];
   const stats = $("#stats");
   stats.innerHTML = "";

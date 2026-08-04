@@ -414,11 +414,22 @@ async function openScanner() {
     return;
   }
   try {
-    _scanner = new Html5Qrcode("reader");
+    // Explicitly support common 1D barcodes (not just QR) + use the fast native
+    // detector when the browser has it, so bottle/product barcodes actually read.
+    const F = window.Html5QrcodeSupportedFormats || {};
+    const formats = ["QR_CODE", "EAN_13", "EAN_8", "UPC_A", "UPC_E",
+                     "UPC_EAN_EXTENSION", "CODE_128", "CODE_39", "CODE_93",
+                     "ITF", "CODABAR"].map((k) => F[k]).filter((v) => v !== undefined);
+    _scanner = new Html5Qrcode("reader", {
+      formatsToSupport: formats.length ? formats : undefined,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false,
+    });
     await _scanner.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: (w, h) => {
-          const m = Math.min(w, h); return { width: Math.floor(m * 0.85), height: Math.floor(m * 0.6) };
+      { fps: 12, qrbox: (w, h) => {
+          // wide box suits horizontal 1D barcodes
+          return { width: Math.floor(w * 0.92), height: Math.floor(Math.min(h * 0.5, 200)) };
         } },
       onScan,
       () => {}  // per-frame decode misses are normal — ignore
@@ -465,20 +476,36 @@ async function applyScan(code) {
   }
 }
 
+async function fetchWithTimeout(url, ms) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try { return await fetch(url, { signal: ctl.signal }); }
+  finally { clearTimeout(t); }
+}
+
 async function lookupBarcode(code) {
-  try {
-    const res = await fetch(
-      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=product_name,brands,quantity`);
-    const data = await res.json();
-    if (data.status === 1 && data.product) {
-      const brand = (data.product.brands || "").split(",")[0].trim();  // first brand only
-      return {
-        name: (data.product.product_name || "").trim(),
-        brand,
-        size: (data.product.quantity || "").trim(),
-      };
-    }
-  } catch (e) { /* network / not found */ }
+  // Try the free Open Facts databases in turn: food/drinks, then general
+  // products, then beauty — covers water, groceries, and household items.
+  const bases = [
+    "https://world.openfoodfacts.org",
+    "https://world.openproductsfacts.org",
+    "https://world.openbeautyfacts.org",
+  ];
+  for (const base of bases) {
+    try {
+      const res = await fetchWithTimeout(
+        `${base}/api/v2/product/${encodeURIComponent(code)}?fields=product_name,brands,quantity`, 6000);
+      const data = await res.json();
+      const p = data && data.product;
+      if (data && data.status === 1 && p && ((p.product_name || "").trim() || (p.brands || "").trim())) {
+        return {
+          name: (p.product_name || "").trim(),
+          brand: (p.brands || "").split(",")[0].trim(),  // first brand only
+          size: (p.quantity || "").trim(),
+        };
+      }
+    } catch (e) { /* timed out or not found — try next database */ }
+  }
   return null;
 }
 

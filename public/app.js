@@ -386,8 +386,41 @@ function openStock(it) {
   f.unit.value = it.unit || "";
   f.needed.value = it.quantity_needed || "";
   $("#stockItemName").textContent = it.name;
+  $("#takeAmount").value = "";
+  loadTakes(it.id);
   $("#stockModal").hidden = false;
   f.quantity.focus();
+}
+
+async function loadTakes(id) {
+  const list = $("#takesList");
+  list.innerHTML = "";
+  try {
+    const data = await api("GET", `/api/items/${id}/takes`);
+    if (!data.takes.length) {
+      list.innerHTML = '<div class="take-item muted">No withdrawals recorded yet.</div>';
+      return;
+    }
+    for (const t of data.takes) {
+      const when = (t.created_at || "").slice(0, 16).replace("T", " ");
+      list.append(el("div", "take-item", `<b>${t.detail}</b> · ${when}`));
+    }
+  } catch (e) { /* ignore */ }
+}
+
+async function takeStock() {
+  const f = $("#stockForm");
+  const id = f.id.value;
+  const amt = $("#takeAmount").value;
+  if (!amt || Number(amt) <= 0) { toast("Enter an amount taken"); return; }
+  try {
+    const updated = await api("POST", `/api/items/${id}/take`, { amount: amt });
+    f.quantity.value = updated.quantity || "";  // reflect the new on-hand count
+    $("#takeAmount").value = "";
+    await loadTakes(id);
+    await load();  // refresh the card list
+    toast(`Recorded: took ${amt} from ${updated.name}`);
+  } catch (e) { toast(e.message); }
 }
 
 async function saveStock(e) {
@@ -435,6 +468,7 @@ $("#cancelBtn").onclick = () => ($("#modal").hidden = true);
 $("#itemForm").onsubmit = saveItem;
 $("#stockForm").onsubmit = saveStock;
 $("#stockCancel").onclick = () => ($("#stockModal").hidden = true);
+$("#takeBtn").onclick = takeStock;
 $("#previewBtn").onclick = openPreview;
 $("#previewClose").onclick = () => ($("#previewModal").hidden = true);
 $("#sendNowBtn").onclick = sendNow;

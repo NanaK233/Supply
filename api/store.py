@@ -357,6 +357,40 @@ def update_quantity(item_id, quantity, unit=None, needed=None):
     return get_item(item_id)
 
 
+def take_from_stock(item_id, amount, by=""):
+    """Record a withdrawal: subtract `amount` from the on-hand quantity and log
+    who took how much and when. Returns the updated item (or None on bad input)."""
+    amt = _parse_qty(amount)
+    if amt is None or amt <= 0:
+        return None
+    conn = _connect()
+    row = conn.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
+    if not row:
+        conn.close()
+        return None
+    cur = _parse_qty(row["quantity"])
+    if cur is not None:
+        new = max(0, cur - amt)
+        new_str = str(int(new)) if new == int(new) else ("%g" % new)
+        conn.execute("UPDATE items SET quantity=? WHERE id=?", (new_str, item_id))
+    _log_event(conn, item_id, "took", detail=f"{'%g' % amt} by {by or 'someone'}")
+    conn.commit()
+    conn.close()
+    return get_item(item_id)
+
+
+def recent_takes(item_id, limit=6):
+    """Recent withdrawal records for an item (newest first)."""
+    conn = _connect()
+    rows = conn.execute(
+        "SELECT detail, created_at FROM events WHERE item_id=? AND type='took' "
+        "ORDER BY created_at DESC LIMIT ?",
+        (item_id, limit),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def delete_item(item_id):
     conn = _connect()
     conn.execute("UPDATE items SET archived=1 WHERE id=?", (item_id,))

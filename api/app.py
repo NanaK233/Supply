@@ -147,6 +147,15 @@ class Handler(BaseHTTPRequestHandler):
                 return
             return self._json({"history": store.history(int(m.group(1)))})
 
+        # recent withdrawals — staff + admin (own/shared items)
+        m = re.match(r"^/api/items/(\d+)/takes$", path)
+        if m:
+            if self._require("admin", "staff") is None:
+                return
+            if not self._owns(int(m.group(1))):
+                return
+            return self._json({"takes": store.recent_takes(int(m.group(1)))})
+
         return self._serve_static(path)
 
     # --- POST --------------------------------------------------------------
@@ -192,6 +201,19 @@ class Handler(BaseHTTPRequestHandler):
                                            b.get("unit"), b.get("needed"))
             if result is None:
                 return self._json({"error": "Not found"}, 404)
+            return self._json(result)
+
+        # take from stock (record a withdrawal) — staff + admin (own/shared)
+        m = re.match(r"^/api/items/(\d+)/take$", path)
+        if m:
+            if self._require("admin", "staff") is None:
+                return
+            if not self._owns(int(m.group(1))):
+                return
+            by = self._session()["name"]
+            result = store.take_from_stock(int(m.group(1)), self._body().get("amount"), by)
+            if result is None:
+                return self._json({"error": "Enter a valid amount"}, 400)
             return self._json(result)
 
         # flag-low — staff only (admin uses the status menu instead)

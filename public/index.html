@@ -132,6 +132,16 @@
           <button type="submit" class="btn primary">Save stock</button>
         </div>
       </form>
+
+      <div class="take-section">
+        <h3>Take from stock</h3>
+        <p class="muted">Record when you take items — it lowers the count and logs who took what.</p>
+        <div class="take-row">
+          <input id="takeAmount" type="number" min="0" step="any" placeholder="Amount taken, e.g. 2" autocomplete="off">
+          <button type="button" class="btn primary" id="takeBtn">Record</button>
+        </div>
+        <div id="takesList" class="takes-list"></div>
+      </div>
     </div>
   </div>
 

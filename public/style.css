@@ -231,6 +231,16 @@ body:not(.role-admin) .admin-only { display: none !important; }
   font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
   background: #f1f5f9; color: #475569;
 }
+
+.take-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.take-section h3 { margin: 0 0 4px; font-size: 15px; }
+.take-section .muted { margin: 0 0 10px; }
+.take-row { display: flex; gap: 8px; }
+.take-row input { flex: 1; min-width: 0; padding: 9px 11px; border: 1px solid var(--line);
+  border-radius: 9px; font-size: 14px; }
+.takes-list { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.take-item { font-size: 13px; color: var(--muted); }
+.take-item b { color: var(--ink); }
 .ordered-badge {
   font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
   background: #ccfbf1; color: #0f766e;

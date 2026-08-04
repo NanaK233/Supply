@@ -122,6 +122,11 @@ img, svg { max-width: 100%; }
 .owner-badge.Shared { background: #ecfdf5; color: #047857; }
 .card-meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
 .card-meta .dot { margin: 0 6px; }
+.card-note {
+  margin-top: 8px; font-size: 13px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+  white-space: pre-wrap; word-break: break-word;
+}
 
 .status-pill {
   font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;

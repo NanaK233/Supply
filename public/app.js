@@ -166,6 +166,13 @@ function render() {
     metaBits.push(`next: ${it.next_due}`);
     main.append(el("div", "card-meta", metaBits.join(' <span class="dot">·</span> ')));
 
+    // Notes — admin only. textContent avoids any HTML injection from note text.
+    if (isAdmin() && it.notes) {
+      const note = el("div", "card-note");
+      note.textContent = "📝 " + it.notes;
+      main.append(note);
+    }
+
     // Adaptive suggestion — admin only
     if (it.suggestion && isAdmin()) {
       const s = el("div", "suggestion admin-only");

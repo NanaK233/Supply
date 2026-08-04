@@ -344,6 +344,7 @@ function openAdd() {
   f.id.value = "";
   populateOwnerSelect(isAdmin() ? "Shared" : state.name);
   f.last_restocked.value = new Date().toISOString().slice(0, 10);
+  $("#scanBtn").hidden = false;  // scanning is for adding new items
   $("#modal").hidden = false;
   f.name.focus();
 }
@@ -351,6 +352,7 @@ function openAdd() {
 function openEdit(it) {
   $("#modalTitle").textContent = "Edit item";
   const f = $("#itemForm");
+  $("#scanBtn").hidden = true;
   f.id.value = it.id;
   f.name.value = it.name;
   populateOwnerSelect(it.owner);
@@ -383,6 +385,101 @@ async function saveItem(e) {
     await load();
     toast("Saved");
   } catch (err) { toast(err.message); }
+}
+
+// ---- barcode / QR scanner (auto-fill the add form) ----
+let _scanLibLoading = null;
+let _scanner = null;
+
+function loadScannerLib() {
+  if (window.Html5Qrcode) return Promise.resolve();
+  if (_scanLibLoading) return _scanLibLoading;
+  _scanLibLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";
+    s.onload = resolve;
+    s.onerror = () => { _scanLibLoading = null; reject(new Error("load failed")); };
+    document.head.appendChild(s);
+  });
+  return _scanLibLoading;
+}
+
+async function openScanner() {
+  $("#scanStatus").textContent = "Starting camera…";
+  $("#scanModal").hidden = false;
+  try {
+    await loadScannerLib();
+  } catch (e) {
+    $("#scanStatus").textContent = "Couldn't load the scanner — check your connection and try again.";
+    return;
+  }
+  try {
+    _scanner = new Html5Qrcode("reader");
+    await _scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: (w, h) => {
+          const m = Math.min(w, h); return { width: Math.floor(m * 0.85), height: Math.floor(m * 0.6) };
+        } },
+      onScan,
+      () => {}  // per-frame decode misses are normal — ignore
+    );
+    $("#scanStatus").textContent = "Hold steady over the barcode or QR code…";
+  } catch (e) {
+    $("#scanStatus").textContent = "Camera unavailable or permission denied. You can enter details manually.";
+  }
+}
+
+async function stopScanner() {
+  if (_scanner) {
+    try { await _scanner.stop(); _scanner.clear(); } catch (e) { /* already stopped */ }
+    _scanner = null;
+  }
+  $("#scanModal").hidden = true;
+}
+
+async function onScan(text) {
+  await stopScanner();
+  await applyScan(text);
+}
+
+async function applyScan(code) {
+  const f = $("#itemForm");
+  code = (code || "").trim();
+  if (/^\d{6,}$/.test(code)) {                 // looks like a product barcode
+    toast(`Looking up ${code}…`);
+    const info = await lookupBarcode(code);
+    if (info && info.name) {
+      f.name.value = info.name;
+      if (info.brand) f.brand.value = info.brand;
+      if (info.size && !f.notes.value) f.notes.value = `Pack size: ${info.size}`;
+      toast(`Found: ${info.name}`);
+    } else {
+      f.notes.value = (f.notes.value ? f.notes.value + " " : "") + `[barcode ${code}]`;
+      toast(`Barcode ${code} not in the product database — fill in the name`);
+      f.name.focus();
+    }
+  } else {                                     // QR text / URL
+    if (!f.name.value) f.name.value = code;
+    else f.notes.value = (f.notes.value ? f.notes.value + " " : "") + code;
+    toast(`Scanned: ${code}`);
+  }
+}
+
+async function lookupBarcode(code) {
+  try {
+    const res = await fetch(
+      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=product_name,brands,quantity`);
+    const data = await res.json();
+    if (data.status === 1 && data.product) {
+      const brand = (data.product.brands || "").split(",")[0].trim();  // first brand only
+      return {
+        name: (data.product.product_name || "").trim(),
+        brand,
+        size: (data.product.quantity || "").trim(),
+      };
+    }
+  } catch (e) { /* network / not found */ }
+  return null;
 }
 
 // ---- stock modal (both roles) ----
@@ -476,6 +573,8 @@ $("#itemForm").onsubmit = saveItem;
 $("#stockForm").onsubmit = saveStock;
 $("#stockCancel").onclick = () => ($("#stockModal").hidden = true);
 $("#takeBtn").onclick = takeStock;
+$("#scanBtn").onclick = openScanner;
+$("#scanCancel").onclick = stopScanner;
 $("#previewBtn").onclick = openPreview;
 $("#previewClose").onclick = () => ($("#previewModal").hidden = true);
 $("#sendNowBtn").onclick = sendNow;
@@ -490,6 +589,8 @@ $("#ownerFilter").onclick = (e) => {
 document.querySelectorAll(".modal-backdrop").forEach((m) => {
   m.onclick = (e) => { if (e.target === m) m.hidden = true; };
 });
+// Closing the scanner by backdrop must also stop the camera.
+$("#scanModal").onclick = (e) => { if (e.target === $("#scanModal")) stopScanner(); };
 document.addEventListener("click", closeAllMenus);
 
 checkSession();

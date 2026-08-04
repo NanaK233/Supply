@@ -238,6 +238,17 @@ body:not(.role-admin) .admin-only { display: none !important; }
   background: #f1f5f9; color: #475569;
 }
 
+.scan-btn {
+  width: 100%; margin-bottom: 14px; background: #eef2ff; color: #3730a3;
+  border-color: #c7d2fe; font-weight: 700;
+}
+.scan-modal { max-width: 440px; }
+.reader {
+  width: 100%; margin-top: 8px; border-radius: 12px; overflow: hidden;
+  background: #000; min-height: 240px;
+}
+.reader video, .reader img { width: 100% !important; display: block; }
+
 .take-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .take-section h3 { margin: 0 0 4px; font-size: 15px; }
 .take-section .muted { margin: 0 0 10px; }
@@ -332,6 +343,7 @@ body:not(.role-admin) .admin-only { display: none !important; }
     background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.32); color: #e9d5ff;
   }
   .login-screen { background: linear-gradient(160deg,#141c29,#0f141c); }
+  .scan-btn { background: rgba(99,102,241,.18); color: #c7d2fe; border-color: rgba(99,102,241,.35); }
 
   /* form controls */
   .modal input, .modal select, .modal textarea,

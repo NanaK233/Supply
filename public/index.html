@@ -63,6 +63,7 @@
       <h2 id="modalTitle">Add item</h2>
       <form id="itemForm">
         <input type="hidden" name="id">
+        <button type="button" class="btn scan-btn" id="scanBtn">📷 Scan barcode / QR to auto-fill</button>
         <label>Item name
           <input name="name" required placeholder="e.g. Coffee pods" autocomplete="off">
         </label>
@@ -141,6 +142,18 @@
           <button type="button" class="btn primary" id="takeBtn">Record</button>
         </div>
         <div id="takesList" class="takes-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barcode / QR scanner dialog -->
+  <div class="modal-backdrop" id="scanModal" hidden>
+    <div class="modal scan-modal">
+      <h2>Scan barcode / QR</h2>
+      <p class="muted" id="scanStatus">Point your camera at the item's barcode or QR code.</p>
+      <div id="reader" class="reader"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" id="scanCancel">Cancel</button>
       </div>
     </div>
   </div>

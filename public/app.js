@@ -365,6 +365,7 @@ function openEdit(it) {
   f.cadence_days.value = it.cadence_days;
   f.last_restocked.value = it.last_restocked;
   f.notes.value = it.notes || "";
+  f.barcode.value = it.barcode || "";
   $("#modal").hidden = false;
 }
 
@@ -376,7 +377,7 @@ async function saveItem(e) {
     brand: f.brand.value, quantity: f.quantity.value, unit: f.unit.value,
     quantity_needed: f.quantity_needed.value,
     cadence_days: f.cadence_days.value, last_restocked: f.last_restocked.value,
-    notes: f.notes.value,
+    notes: f.notes.value, barcode: f.barcode.value,
   };
   try {
     if (f.id.value) await api("PUT", `/api/items/${f.id.value}`, data);
@@ -466,6 +467,19 @@ async function applyScan(code) {
   const f = $("#itemForm");
   code = (code || "").trim();
   if (/^\d{6,}$/.test(code)) {                 // looks like a product barcode
+    f.barcode.value = code;                    // remember it against this item
+    // 1) Seen this barcode before? Auto-fill from the item we saved it on —
+    //    this is what makes regional products (not in any database) instant.
+    const known = state.items.find((i) => (i.barcode || "") === code);
+    if (known) {
+      f.name.value = known.name;
+      if (known.brand) f.brand.value = known.brand;
+      if (known.category) f.category.value = known.category;
+      if (known.unit) f.unit.value = known.unit;
+      toast(`Recognised: ${known.name}`);
+      return;
+    }
+    // 2) New to us — try the free online product databases.
     toast(`Looking up ${code}…`);
     const info = await lookupBarcode(code);
     if (info && info.name) {
@@ -474,8 +488,7 @@ async function applyScan(code) {
       if (info.size && !f.notes.value) f.notes.value = `Pack size: ${info.size}`;
       toast(`Found: ${info.name}`);
     } else {
-      f.notes.value = (f.notes.value ? f.notes.value + " " : "") + `[barcode ${code}]`;
-      toast(`Barcode ${code} not in the product database — fill in the name`);
+      toast("New barcode saved — type the name and it'll be remembered next time");
       f.name.focus();
     }
   } else {                                     // QR text / URL

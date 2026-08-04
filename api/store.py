@@ -75,7 +75,8 @@ def init_db():
             archived        INTEGER NOT NULL DEFAULT 0,
             created_at      TEXT NOT NULL,
             restock_state   TEXT NOT NULL DEFAULT '',
-            quantity_needed TEXT NOT NULL DEFAULT ''
+            quantity_needed TEXT NOT NULL DEFAULT '',
+            brand           TEXT NOT NULL DEFAULT ''
         );
 
         CREATE TABLE IF NOT EXISTS events (
@@ -95,6 +96,8 @@ def init_db():
     )
     # Legacy rename (harmless on a fresh database).
     conn.execute("UPDATE items SET restock_state='ordered' WHERE restock_state='restocking'")
+    # Migration: optional brand for existing databases.
+    conn.execute("ALTER TABLE items ADD COLUMN IF NOT EXISTS brand TEXT NOT NULL DEFAULT ''")
     conn.commit()
     conn.close()
 
@@ -273,8 +276,8 @@ def create_item(data):
     last = data.get("last_restocked") or _today().isoformat()
     cur = conn.execute(
         "INSERT INTO items (name, owner, category, quantity, unit, cadence_days, "
-        "last_restocked, notes, quantity_needed, created_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id",
+        "last_restocked, notes, quantity_needed, brand, created_at) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
         (
             data["name"].strip(),
             data.get("owner", "Shared"),
@@ -285,6 +288,7 @@ def create_item(data):
             last,
             data.get("notes", "").strip(),
             str(data.get("quantity_needed", "")).strip(),
+            data.get("brand", "").strip(),
             now,
         ),
     )
@@ -303,7 +307,7 @@ def update_item(item_id, data):
 
     old_cadence = existing["cadence_days"]
     fields = ["name", "owner", "category", "quantity", "unit", "cadence_days",
-              "last_restocked", "notes", "quantity_needed"]
+              "last_restocked", "notes", "quantity_needed", "brand"]
     updates = {f: data[f] for f in fields if f in data}
     if "cadence_days" in updates:
         updates["cadence_days"] = int(updates["cadence_days"])

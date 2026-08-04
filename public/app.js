@@ -149,6 +149,7 @@ function render() {
     const main = el("div", "card-main");
     const title = el("div", "card-title");
     title.append(el("span", "name", it.name));
+    if (it.brand) title.append(el("span", "brand-tag", it.brand));
     title.append(el("span", `owner-badge ${it.owner}`, it.owner));
     if (it.ordered) title.append(el("span", "ordered-badge", "🛒 Ordered"));
     main.append(title);
@@ -348,6 +349,7 @@ function openEdit(it) {
   populateOwnerSelect(it.owner);
   f.owner.value = it.owner;
   f.category.value = it.category || "";
+  f.brand.value = it.brand || "";
   f.quantity.value = it.quantity || "";
   f.unit.value = it.unit || "";
   f.quantity_needed.value = it.quantity_needed || "";
@@ -362,7 +364,7 @@ async function saveItem(e) {
   const f = $("#itemForm");
   const data = {
     name: f.name.value, owner: f.owner.value, category: f.category.value,
-    quantity: f.quantity.value, unit: f.unit.value,
+    brand: f.brand.value, quantity: f.quantity.value, unit: f.unit.value,
     quantity_needed: f.quantity_needed.value,
     cadence_days: f.cadence_days.value, last_restocked: f.last_restocked.value,
     notes: f.notes.value,

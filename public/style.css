@@ -227,6 +227,10 @@ body:not(.role-admin) .admin-only { display: none !important; }
 .qty-strong { font-weight: 700; color: var(--ink); }
 .qty-empty { font-weight: 800; color: #991b1b; }
 .qty-needed { font-weight: 700; color: #b45309; }
+.brand-tag {
+  font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+  background: #f1f5f9; color: #475569;
+}
 .ordered-badge {
   font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
   background: #ccfbf1; color: #0f766e;

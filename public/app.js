@@ -426,7 +426,10 @@ async function openScanner() {
       verbose: false,
     });
     await _scanner.start(
-      { facingMode: "environment" },
+      // higher resolution + continuous autofocus helps read curved/shiny
+      // labels (e.g. water bottles) that low-res or fixed focus can't.
+      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 },
+        advanced: [{ focusMode: "continuous" }] },
       { fps: 12, qrbox: (w, h) => {
           // wide box suits horizontal 1D barcodes
           return { width: Math.floor(w * 0.92), height: Math.floor(Math.min(h * 0.5, 200)) };
@@ -445,12 +448,24 @@ async function stopScanner() {
     try { await _scanner.stop(); _scanner.clear(); } catch (e) { /* already stopped */ }
     _scanner = null;
   }
+  $("#manualCode").value = "";
   $("#scanModal").hidden = true;
 }
 
 async function onScan(text) {
   await stopScanner();
   await applyScan(text);
+}
+
+// Fallback when the camera can't read a curved/shiny label: type the digits.
+async function manualLookup() {
+  const code = ($("#manualCode").value || "").trim();
+  if (!/^\d{6,}$/.test(code)) {
+    toast("Enter the barcode's digits (at least 6 numbers)");
+    return;
+  }
+  await stopScanner();
+  await applyScan(code);
 }
 
 async function applyScan(code) {
@@ -602,6 +617,10 @@ $("#stockCancel").onclick = () => ($("#stockModal").hidden = true);
 $("#takeBtn").onclick = takeStock;
 $("#scanBtn").onclick = openScanner;
 $("#scanCancel").onclick = stopScanner;
+$("#manualCodeBtn").onclick = manualLookup;
+$("#manualCode").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); manualLookup(); }
+});
 $("#previewBtn").onclick = openPreview;
 $("#previewClose").onclick = () => ($("#previewModal").hidden = true);
 $("#sendNowBtn").onclick = sendNow;

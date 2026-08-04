@@ -248,6 +248,11 @@ body:not(.role-admin) .admin-only { display: none !important; }
   background: #000; min-height: 240px;
 }
 .reader video, .reader img { width: 100% !important; display: block; }
+.manual-code { margin-top: 12px; }
+.manual-code p { margin: 0 0 6px; font-size: 13px; }
+.manual-row { display: flex; gap: 8px; }
+.manual-row input { flex: 1; min-width: 0; }
+.manual-row .btn { white-space: nowrap; }
 
 .take-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .take-section h3 { margin: 0 0 4px; font-size: 15px; }

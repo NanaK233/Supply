@@ -425,18 +425,20 @@ async function openScanner() {
       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       verbose: false,
     });
-    await _scanner.start(
-      // higher resolution + continuous autofocus helps read curved/shiny
-      // labels (e.g. water bottles) that low-res or fixed focus can't.
-      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 },
-        advanced: [{ focusMode: "continuous" }] },
-      { fps: 12, qrbox: (w, h) => {
-          // wide box suits horizontal 1D barcodes
-          return { width: Math.floor(w * 0.92), height: Math.floor(Math.min(h * 0.5, 200)) };
-        } },
-      onScan,
-      () => {}  // per-frame decode misses are normal — ignore
-    );
+    const scanCfg = { fps: 12, qrbox: (w, h) => {
+        // wide box suits horizontal 1D barcodes
+        return { width: Math.floor(w * 0.92), height: Math.floor(Math.min(h * 0.5, 200)) };
+      } };
+    // Prefer a high-res, continuously-focused stream (better for curved/shiny
+    // labels), but some phones reject the extra constraints — if so, fall back
+    // to a plain environment-facing camera so scanning still works.
+    const hiRes = { facingMode: "environment", width: { ideal: 1920 },
+                    height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] };
+    try {
+      await _scanner.start(hiRes, scanCfg, onScan, () => {});
+    } catch (e) {
+      await _scanner.start({ facingMode: "environment" }, scanCfg, onScan, () => {});
+    }
     $("#scanStatus").textContent = "Hold steady over the barcode or QR code…";
   } catch (e) {
     $("#scanStatus").textContent = "Camera unavailable or permission denied. You can enter details manually.";

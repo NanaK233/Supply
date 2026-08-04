@@ -20,7 +20,7 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; color-scheme: light dark; }
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
@@ -271,4 +271,66 @@ body:not(.role-admin) .admin-only { display: none !important; }
 @media (max-width: 640px) {
   .modal input, .modal select, .modal textarea,
   .search, .login-card input, .login-card select { font-size: 16px; }
+}
+
+/* ── Dark theme — follows the device automatically ─────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141c;
+    --card: #1a212e;
+    --ink: #e6e9ef;
+    --muted: #97a2b3;
+    --line: #2c3546;
+    --primary: #3b82f6;
+    --shadow: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+    --low: #f87171;
+    --overdue: #fb923c;
+    --due: #fbbf24;
+    --soon: #60a5fa;
+    --ok: #4ade80;
+  }
+
+  .btn.danger { border-color: #7f2c2c; }
+  .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .stat.active { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary) inset; }
+  .stat:hover { box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+  .toast { background: #f1f5f9; color: #0f141c; }
+
+  /* tinted chips/badges → translucent tints that read on dark */
+  .filter-banner { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.32); }
+  .owner-badge { background: rgba(99,102,241,.20); color: #c7d2fe; }
+  .owner-badge.Eddie { background: rgba(56,189,248,.16); color: #bae6fd; }
+  .owner-badge.Danilo { background: rgba(192,132,252,.18); color: #e9d5ff; }
+  .owner-badge.Shared { background: rgba(52,211,153,.16); color: #a7f3d0; }
+  .role-badge { background: rgba(99,102,241,.22); color: #c7d2fe; }
+  .role-badge.admin { background: rgba(245,158,11,.18); color: #fcd34d; }
+  .role-badge.staff { background: rgba(59,130,246,.22); color: #93c5fd; }
+  .brand-tag { background: rgba(148,163,184,.18); color: #cbd5e1; }
+  .ordered-badge, .status-pill.ordered { background: rgba(45,212,191,.16); color: #5eead4; }
+
+  .status-pill.low { background: rgba(248,113,113,.16); color: #fca5a5; }
+  .status-pill.overdue { background: rgba(251,146,60,.16); color: #fdba74; }
+  .status-pill.due { background: rgba(250,204,21,.16); color: #fde047; }
+  .status-pill.soon { background: rgba(96,165,250,.18); color: #93c5fd; }
+  .status-pill.ok { background: rgba(74,222,128,.16); color: #86efac; }
+  .status-pill.out { background: #b91c1c; color: #fff; }
+
+  .stat.ordered .num { color: #2dd4bf; }
+  .stat.shared .num { color: #34d399; }
+  .stat.out .num { color: #f87171; }
+  .card.out { border-left-color: #ef4444; }
+  .qty-empty { color: #f87171; }
+  .qty-needed { color: #fbbf24; }
+
+  .suggestion {
+    background: rgba(168,85,247,.12); border-color: rgba(168,85,247,.32); color: #e9d5ff;
+  }
+  .login-screen { background: linear-gradient(160deg,#141c29,#0f141c); }
+
+  /* form controls */
+  .modal input, .modal select, .modal textarea,
+  .login-card input, .login-card select, .search, .take-row input {
+    background: #131a26; color: var(--ink); border-color: var(--line);
+  }
+  input::placeholder, textarea::placeholder { color: #6b7688; }
 }

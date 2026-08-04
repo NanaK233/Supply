@@ -79,7 +79,8 @@ function showApp() {
   document.body.classList.toggle("role-admin", isAdmin());
   document.body.classList.toggle("role-staff", !isAdmin());
   const badge = $("#roleBadge");
-  badge.textContent = `${state.name} · ${isAdmin() ? "Admin" : "Staff"}`;
+  // Admin sees their role; staff just see their own name.
+  badge.textContent = isAdmin() ? `${state.name} · Admin` : state.name;
   badge.className = "role-badge " + (isAdmin() ? "admin" : "staff");
 }
 

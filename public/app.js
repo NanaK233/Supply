@@ -429,16 +429,8 @@ async function openScanner() {
         // wide box suits horizontal 1D barcodes
         return { width: Math.floor(w * 0.92), height: Math.floor(Math.min(h * 0.5, 200)) };
       } };
-    // Prefer a high-res, continuously-focused stream (better for curved/shiny
-    // labels), but some phones reject the extra constraints — if so, fall back
-    // to a plain environment-facing camera so scanning still works.
-    const hiRes = { facingMode: "environment", width: { ideal: 1920 },
-                    height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] };
-    try {
-      await _scanner.start(hiRes, scanCfg, onScan, () => {});
-    } catch (e) {
-      await _scanner.start({ facingMode: "environment" }, scanCfg, onScan, () => {});
-    }
+    // Plain environment-facing camera — the setting that reliably read the Milo.
+    await _scanner.start({ facingMode: "environment" }, scanCfg, onScan, () => {});
     $("#scanStatus").textContent = "Hold steady over the barcode or QR code…";
   } catch (e) {
     $("#scanStatus").textContent = "Camera unavailable or permission denied. You can enter details manually.";

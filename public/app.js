@@ -151,7 +151,11 @@ function render() {
     const title = el("div", "card-title");
     title.append(el("span", "name", it.name));
     if (it.brand) title.append(el("span", "brand-tag", it.brand));
-    title.append(el("span", `owner-badge ${it.owner}`, it.owner));
+    // Staff only see their own + Shared items, so their own name on a personal
+    // item is redundant — show the owner badge only for Shared items (or to
+    // admin, who sees everyone's items and needs to tell them apart).
+    if (it.owner === "Shared" || isAdmin())
+      title.append(el("span", `owner-badge ${it.owner}`, it.owner));
     if (it.ordered) title.append(el("span", "ordered-badge", "🛒 Ordered"));
     main.append(title);
 
